@@ -1,1 +1,1 @@
-add_subdirectory(${FE_THIRD_PARTY_DIR}/doctest)
+add_subdirectory(${AE_THIRD_PARTY_DIR}/doctest)
