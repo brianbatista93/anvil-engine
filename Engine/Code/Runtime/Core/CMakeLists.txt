@@ -2,10 +2,16 @@ project (aeCore)
 
 file(GLOB SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Containers/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Memory/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Memory/Allocators/*.cpp"
 )
 
 file(GLOB HEADERS
 	"${CMAKE_CURRENT_SOURCE_DIR}/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Containers/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Memory/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Memory/Allocators/*.h"
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})

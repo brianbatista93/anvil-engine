@@ -1,0 +1,1 @@
+add_subdirectory(${FE_THIRD_PARTY_DIR}/doctest)
