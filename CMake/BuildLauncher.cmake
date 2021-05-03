@@ -1,0 +1,5 @@
+if(WINDOWS)
+    add_subdirectory("Engine/Code/Runtime/Launch/Windows")
+elseif(LINUX)
+    add_subdirectory("Engine/Code/Runtime/Launch/Linux")
+endif()

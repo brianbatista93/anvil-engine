@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "name": "Windows-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [
+        "msvc_x64_x64"
+      ],
+      "buildRoot": "${projectDir}\\Engine\\Binaries\\${name}",
+      "installRoot": "${projectDir}\\Engine\\Binaries\\Install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "addressSanitizerEnabled": false,
+      "enableMicrosoftCodeAnalysis": true,
+      "enableClangTidyCodeAnalysis": true,
+      "addressSanitizerRuntimeFlags": "windows_hook_rtl_allocators=true",
+      "ctestCommandArgs": "",
+      "variables": []
+    }
+  ]
+}
