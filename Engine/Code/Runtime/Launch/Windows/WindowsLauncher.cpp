@@ -1,6 +1,5 @@
 #include "Core.h"
-// #include "OS/Windows/WindowsCommons.h"
-#include <Windows.h>
+#include "OS/Windows/WindowsCommons.h"
 
 #ifdef AE_DEBUG
     #if AE_WINDOWS
