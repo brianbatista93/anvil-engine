@@ -13,7 +13,7 @@ MemoryUtils::AllocateAligned(uint64 size, uint64 align)
     }
 
     int64 shift = alignedMemory - rawMemory;
-    FE_ASSERT(shift > 0 && shift <= 256);
+    AE_ASSERT(shift > 0 && shift <= 256);
 
     alignedMemory[-1] = static_cast<uint8>(shift & 0xFF);
 
@@ -23,7 +23,7 @@ MemoryUtils::AllocateAligned(uint64 size, uint64 align)
 void
 MemoryUtils::FreeAligned(void* memoryBlock)
 {
-    FE_ASSERT(memoryBlock);
+    AE_ASSERT(memoryBlock);
     uint8* alignedMemory = reinterpret_cast<uint8*>(memoryBlock);
 
     int64 shift = alignedMemory[-1];

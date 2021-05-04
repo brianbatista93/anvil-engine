@@ -19,13 +19,39 @@ class TDynamicAllocator
 
     constexpr TDynamicAllocator(const TDynamicAllocator& other) noexcept = default;
 
+    constexpr TDynamicAllocator(TDynamicAllocator&& other) noexcept
+      : m_first(other.m_first)
+      , m_last(other.m_last)
+      , m_end(other.m_end)
+    {
+
+        other.m_first {};
+        other.m_last {};
+        other.m_end {};
+    }
+
+    constexpr TDynamicAllocator& operator=(const TDynamicAllocator& other) noexcept = default;
+
+    constexpr TDynamicAllocator& operator=(TDynamicAllocator&& other) noexcept
+    {
+        m_first = other.m_first;
+        m_last  = other.m_last;
+        m_end   = other.m_end;
+
+        other.m_first = nullptr;
+        other.m_last  = nullptr;
+        other.m_end   = nullptr;
+
+        return *this;
+    }
+
     /**
      * @brief Reserves a count of elements in the memory.
      * @param count The number of elements to reserve in memory.
     */
     void Reserve(SizeType count)
     {
-        FE_ASSERT(count > 0);
+        AE_ASSERT(count > 0);
 
         if (count > GetCapacity()) {
             AllocateMemoryBlock(count);
@@ -77,6 +103,44 @@ class TDynamicAllocator
 
     constexpr const ValueType* GetData() const { return m_first; }
 
+    /**
+     * @brief C++ iterator begin.
+     * @return A pointer to the begin.
+    */
+    constexpr ValueType* begin() noexcept { return m_first; }
+
+    /**
+     * @brief C++ iterator begin.
+     * @return A pointer to the begin.
+    */
+    constexpr const ValueType* begin() const noexcept { return m_first; }
+
+    /**
+     * @brief C++ iterator end.
+     * @return A pointer to the end.
+    */
+    constexpr ValueType* end() noexcept { return m_last; }
+
+    /**
+     * @brief C++ iterator end.
+     * @return A pointer to the end.
+    */
+    constexpr const ValueType* end() const noexcept { return m_last; }
+
+    constexpr void Destroy()
+    {
+        m_end  = nullptr;
+        m_last = nullptr;
+        MemoryUtils::FreeAligned(m_first);
+        m_first = nullptr;
+    }
+
+    constexpr void Pop(uint32 count = 1)
+    {
+        AE_ASSERT(m_last);
+        m_last -= count;
+    }
+
   private:
     constexpr void AllocateMemoryBlock(SizeType newSize)
     {
@@ -85,7 +149,7 @@ class TDynamicAllocator
         const uint64   actualSize  = static_cast<uint64>(currentSize * sizeof(ValueType));
         ValueType*     temp        = reinterpret_cast<ValueType*>(MemoryUtils::AllocateAligned(actualSize));
         if (oldSize > 0) {
-            MemoryUtils::CopyElements(temp, m_first, GetSize() * sizeof(ValueType));
+            MemoryUtils::CopyElements(temp, m_first, GetSize());
             MemoryUtils::FreeAligned(m_first);
         }
         m_first = temp;

@@ -12,4 +12,4 @@ SafeDelete(void* ptr)
     }
 }
 
-#define FE_ASSERT(x) assert(x)
+#define AE_ASSERT(x) assert(x)

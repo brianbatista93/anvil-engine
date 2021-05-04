@@ -17,7 +17,7 @@ class MemoryUtils
     static constexpr uint64 AlignAddress(uint64 address, uint64 align)
     {
         const uint64 mask = align - 1;
-        FE_ASSERT((align & mask) == 0);
+        AE_ASSERT((align & mask) == 0);
         return (address + mask) & ~mask;
     }
 
@@ -53,9 +53,9 @@ class MemoryUtils
     template<class T>
     static constexpr void CopyElements(T* dst, const T* src, uint64 size)
     {
-        FE_ASSERT(dst);
-        FE_ASSERT(src);
-        FE_ASSERT(size);
+        AE_ASSERT(dst);
+        AE_ASSERT(src);
+        AE_ASSERT(size);
 
         if constexpr (std::is_trivially_constructible<T>::value) {
             memcpy(dst, src, size * sizeof(T));
@@ -66,14 +66,14 @@ class MemoryUtils
         }
     }
 
-    template<class T>
-    static constexpr void ConstructElements(T* dst, uint64 count)
+    template<class T, class... Args>
+    static constexpr void ConstructElements(T* dst, uint64 count, Args&&... args)
     {
-        FE_ASSERT(dst);
+        AE_ASSERT(dst);
 
         if constexpr (!std::is_trivially_constructible<T>::value) {
             for (uint64 i = 0; i < count; i++) {
-                dst[i] = T();
+                dst[i] = T(std::forward<Args>(args)...);
             }
         }
     }
