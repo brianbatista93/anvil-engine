@@ -1,0 +1,1 @@
+add_subdirectory(${AE_THIRD_PARTY_DIR}/doctest)
