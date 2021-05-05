@@ -117,17 +117,6 @@ TEST_CASE("[TArray]: Constructors and assignments")
         CHECK_FALSE(u.IsEmpty());
     }
 
-    SUBCASE("Copy constructor")
-    {
-        TArray<int32> tu(10);
-        TArray<int32> tv(tu);
-
-        TArray<MyStruct> u(10);
-        TArray<MyStruct> v(u);
-
-        printf("");
-    }
-
     SUBCASE("Insertions")
     {
         TArray<MyStruct> u;
@@ -170,26 +159,6 @@ TEST_CASE("[TArray]: Constructors and assignments")
 
         CHECK_EQ(u.GetSize(), 8);
         CHECK_EQ(u.GetCapacity(), 9);
-    }
-
-    SUBCASE("Remove At")
-    {
-        TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-        u.RemoveAt(3);
-        u.RemoveAt(3);
-        u.RemoveAt(6);
-
-        CHECK_EQ(u.GetSize(), 7);
-        CHECK_EQ(u.GetCapacity(), 10);
-        CHECK_FALSE(u.IsEmpty());
-
-        CHECK_EQ(u[0], 1);
-        CHECK_EQ(u[1], 2);
-        CHECK_EQ(u[2], 3);
-        CHECK_EQ(u[3], 6);
-        CHECK_EQ(u[4], 7);
-        CHECK_EQ(u[5], 8);
-        CHECK_EQ(u[6], 10);
     }
 
     SUBCASE("Remove At")

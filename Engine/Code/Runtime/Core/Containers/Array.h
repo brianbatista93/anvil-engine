@@ -56,7 +56,7 @@ class TArray
         }
     }
 
-    ~TArray() {}
+    ~TArray() { m_allocator.Destroy(); }
 
     /**
      * @brief Copy assingment constructor.
@@ -271,7 +271,7 @@ class TArray
         AE_ASSERT(index < GetSize());
 
         for (uint32 i = index; i < GetSize(); i++) {
-            std::swap(GetData()[i], GetData()[i + count]);
+            GetData()[i] = std::move(GetData()[i + count]);
         }
 
         m_allocator.Pop(count);

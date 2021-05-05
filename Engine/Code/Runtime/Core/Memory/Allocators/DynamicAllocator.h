@@ -129,10 +129,12 @@ class TDynamicAllocator
 
     constexpr void Destroy()
     {
-        m_end  = nullptr;
-        m_last = nullptr;
-        MemoryUtils::FreeAligned(m_first);
-        m_first = nullptr;
+        if (GetCapacity()) {
+            m_end  = nullptr;
+            m_last = nullptr;
+            MemoryUtils::FreeAligned(m_first);
+            m_first = nullptr;
+        }
     }
 
     constexpr void Pop(uint32 count = 1)
