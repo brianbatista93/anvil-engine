@@ -1,5 +1,5 @@
 project(aeTests)
 
-add_executable(UnitTests "TestMain.cpp" "TestArray.h")
+add_executable(aeTests "TestMain.cpp" "TestArray.h" "TestString.h")
 
-target_link_libraries(UnitTests aeCore doctest)
+target_link_libraries(aeTests PUBLIC aeCore doctest)

@@ -56,7 +56,24 @@ class TArray
         }
     }
 
-    ~TArray() { m_allocator.Destroy(); }
+    /**
+     * @brief Construct an array from a memory range.
+     * @param begin Pointer to the memory's begin.
+     * @param end Pointer to the memory's end.
+    */
+    constexpr TArray(const T* begin, const T* end)
+    {
+        const uint64 beginAddr = reinterpret_cast<uint64>(begin);
+        const uint64 endAddr   = reinterpret_cast<uint64>(end);
+        const uint32 size      = static_cast<uint32>(endAddr - beginAddr);
+
+        AE_ASSERT(size);
+
+        m_allocator.Allocate(size / sizeof(T));
+        MemoryUtils::CopyMemory(GetData(), begin, size);
+    }
+
+    ~TArray() noexcept { m_allocator.Destroy(); }
 
     /**
      * @brief Copy assingment constructor.
@@ -143,13 +160,13 @@ class TArray
      * @brief Returns the number of elements present on the array.
      * @return Number of elements of the array.
     */
-    constexpr uint32 GetSize() const { return m_allocator.GetSize(); }
+    constexpr uint32 GetSize() const { return (uint32)m_allocator.GetSize(); }
 
     /**
      * @brief Returns the capacity of the array.
      * @return The capacity (in bytes) of the array.
     */
-    constexpr uint32 GetCapacity() const { return m_allocator.GetCapacity(); }
+    constexpr uint32 GetCapacity() const { return (uint32)m_allocator.GetCapacity(); }
 
     /**
      * @brief Checks if the array is empty.
@@ -244,9 +261,26 @@ class TArray
         AE_ASSERT(slots > 0);
         const uint32 oldSize = GetSize();
 
-        Resize(oldSize + count);
+        Resize(oldSize + slots);
 
         return oldSize;
+    }
+
+    /**
+     * @brief Resizes the container to contain count elements.
+     * @param count New size.
+    */
+    template<class... Args>
+    constexpr void Resize(uint32 count, Args&&... args)
+    {
+        const uint32 currentSize = GetSize();
+        if (count < currentSize) {
+            m_allocator.Reset(count);
+        } else {
+            m_allocator.Reserve(count);
+            MemoryUtils::ConstructElements(GetData() + currentSize, count - currentSize, std::forward<Args>(args)...);
+            m_allocator.Allocate(count - currentSize);
+        }
     }
 
     /**
@@ -304,3 +338,45 @@ class TArray
   private:
     Alloc m_allocator;
 };
+
+template<class T, class Alloc>
+[[nodiscard]] constexpr bool
+operator==(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
+{
+    return lhs.GetSize() == rhs.GetSize() && std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+template<class T, class Alloc>
+[[nodiscard]] constexpr bool
+operator!=(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
+{
+    return !(lhs == rhs);
+}
+
+template<class T, class Alloc>
+[[nodiscard]] constexpr bool
+operator<(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
+{
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+template<class T, class Alloc>
+[[nodiscard]] constexpr bool
+operator<=(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
+{
+    return !(rhs < lhs);
+}
+
+template<class T, class Alloc>
+[[nodiscard]] constexpr bool
+operator>(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
+{
+    return rhs < lhs;
+}
+
+template<class T, class Alloc>
+[[nodiscard]] constexpr bool
+operator>=(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
+{
+    return !(lhs < rhs);
+}

@@ -24,10 +24,9 @@ class TDynamicAllocator
       , m_last(other.m_last)
       , m_end(other.m_end)
     {
-
-        other.m_first {};
-        other.m_last {};
-        other.m_end {};
+        other.m_first = nullptr;
+        other.m_last  = nullptr;
+        other.m_end   = nullptr;
     }
 
     constexpr TDynamicAllocator& operator=(const TDynamicAllocator& other) noexcept = default;
@@ -162,7 +161,7 @@ class TDynamicAllocator
     }
 
   private:
-    ValueType* m_first;
-    ValueType* m_last;
-    ValueType* m_end;
+    ValueType* m_first = nullptr;
+    ValueType* m_last  = nullptr;
+    ValueType* m_end   = nullptr;
 };

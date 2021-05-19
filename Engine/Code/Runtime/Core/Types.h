@@ -10,7 +10,7 @@ using int16 = signed short;
 using int32 = signed int;
 using int64 = signed long long;
 
-#ifdef __cpp_­char8_­t
+#ifdef __cpp_char8_t
 using char8 = char8_t;
 #else
 using char8 = char;
@@ -19,10 +19,10 @@ using char8 = char;
 using char16 = char16_t;
 using char32 = char32_t;
 
-using tchar = char16;
+using tchar = char8;
 
 #ifdef ATEXT
     #undef FTEXT
 #endif // FTEXT
 
-#define ATEXT(t) u##t
+#define ATEXT(t) u8##t

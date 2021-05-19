@@ -14,10 +14,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(WIN32)
-	include("CMake/WindowsSetup.cmake")
-endif()
-
 include ("CMake/CommonOptions.cmake")
 include ("CMake/Modules.cmake")
 include ("CMake/BuildEngine.cmake")

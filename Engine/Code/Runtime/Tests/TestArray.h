@@ -19,7 +19,7 @@ struct MyStruct
 
 TEST_SUITE_BEGIN("Containers");
 
-TEST_CASE("[TArray]: Constructors and assignments")
+TEST_CASE("[TArray]")
 {
     SUBCASE("Default constructor")
     {
@@ -197,6 +197,20 @@ TEST_CASE("[TArray]: Constructors and assignments")
         CHECK_EQ(u[4], 8);
         CHECK_EQ(u[5], 9);
         CHECK_EQ(u[6], 10);
+    }
+
+    SUBCASE("Resize")
+    {
+        TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        u.Resize(5);
+
+        CHECK_EQ(u.GetSize(), 5);
+        CHECK_EQ(u.GetCapacity(), 10);
+
+        u.Resize(15, 0);
+
+        CHECK_EQ(u.GetSize(), 15);
+        CHECK_EQ(u.GetCapacity(), 15);
     }
 }
 

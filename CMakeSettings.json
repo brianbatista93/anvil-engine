@@ -4,9 +4,7 @@
       "name": "Windows-Debug",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "inheritEnvironments": [
-        "msvc_x64_x64"
-      ],
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\Engine\\Binaries\\${name}",
       "installRoot": "${projectDir}\\Engine\\Binaries\\Install\\${name}",
       "cmakeCommandArgs": "",
@@ -16,7 +14,58 @@
       "enableClangTidyCodeAnalysis": true,
       "addressSanitizerRuntimeFlags": "windows_hook_rtl_allocators=true",
       "ctestCommandArgs": "",
+      "cmakeToolchain": "${projectDir}\\CMake\\WindowsSetup.cmake"
+    },
+    {
+      "name": "Windows-Release",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\Engine\\Binaries\\${name}",
+      "installRoot": "${projectDir}\\Engine\\Binaries\\Install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "cmakeToolchain": "${projectDir}\\CMake\\WindowsSetup.cmake",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "addressSanitizerEnabled": false,
+      "addressSanitizerRuntimeFlags": "windows_hook_rtl_allocators=true",
       "variables": []
+    },
+    {
+      "name": "WSL-Clang-Debug",
+      "generator": "Unix Makefiles",
+      "configurationType": "Debug",
+      "buildRoot": "${projectDir}\\Engine\\Binaries\\${name}",
+      "installRoot": "${projectDir}\\Engine\\Binaries\\Install\\${name}",
+      "cmakeExecutable": "/opt/cmake/bin/cmake",
+      "cmakeCommandArgs": "-DCMAKE_C_COMPILER=/opt/clang/bin/clang -DCMAKE_CXX_COMPILER=/opt/clang/bin/clang++",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "cmakeToolchain": "${projectDir}\\CMake\\LinuxClangSetup.cmake",
+      "inheritEnvironments": [ "linux_clang_x64" ],
+      "wslPath": "${defaultWSLPath}",
+      "addressSanitizerEnabled": true,
+      "addressSanitizerRuntimeFlags": "detect_leaks=0"
+    },
+    {
+      "name": "Android_Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${projectDir}\\Engine\\Binaries\\${name}",
+      "installRoot": "${projectDir}\\Engine\\Binaries\\Install\\${name}",
+      "cmakeCommandArgs": "CX=clang++ -DANDROID_ABI=arm64-v8a -DANDROID_STL=c++_shared -DANDROID_TOOLCHAIN=clang",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "cmakeToolchain": "${env.ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake",
+      "variables": [
+        {
+          "name": "ANDROID_NATIVE_API_LEVEL",
+          "value": "24",
+          "type": "STRING"
+        }
+      ],
+      "inheritEnvironments": [],
+      "intelliSenseMode": "android-clang-arm64"
     }
   ]
 }

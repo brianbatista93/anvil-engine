@@ -1,21 +1,16 @@
-sudo: false
-
-branches:
-  only:
-    - main
-
-addons:
-  apt:
-    packages:
-      - doxygen
-
-script:
-  - doxygen Doxyfile
-
-deploy:
-  provider: pages
-  skip_cleanup: true
-  local_dir: Engine/Docs/html
-  github_token: $GH_REPO_TOKEN
-  on:
-    branch: main
+jobs:
+  include:
+  - language: ruby
+    addons:
+      apt:
+        packages:
+          - doxygen
+    script:
+      - doxygen Doxyfile
+    deploy:
+      provider: pages
+      skip_cleanup: true
+      local_dir: Engine/Docs/html
+      token: $GH_REPO_TOKEN
+      on:
+        branch: main

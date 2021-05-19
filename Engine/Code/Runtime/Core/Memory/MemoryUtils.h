@@ -71,10 +71,20 @@ class MemoryUtils
     {
         AE_ASSERT(dst);
 
-        if constexpr (!std::is_trivially_constructible<T>::value) {
+        if constexpr (std::is_constructible<T>::value) {
             for (uint64 i = 0; i < count; i++) {
                 dst[i] = T(std::forward<Args>(args)...);
             }
         }
+    }
+
+    static void CopyMemory(void* dst, const void* begin, uint64 size) { memcpy(dst, begin, size); }
+
+    static void CopyMemory(void* dst, const void* begin, const void* end)
+    {
+        AE_ASSERT(reinterpret_cast<uint64>(end) > reinterpret_cast<uint64>(begin));
+        const uint64 size = reinterpret_cast<uint64>(end) - reinterpret_cast<uint64>(begin);
+
+        CopyMemory(dst, begin, size);
     }
 };

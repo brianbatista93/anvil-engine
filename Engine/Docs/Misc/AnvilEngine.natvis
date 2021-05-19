@@ -3,14 +3,14 @@
 
   <Type Name="String">
     <DisplayString Condition="m_data.m_allocator.m_first==m_data.m_allocator.m_last">[empty]</DisplayString>
-    <DisplayString Condition="m_data.m_allocator.m_first!=m_data.m_allocator.m_last">{&amp;m_data[0],s8}</DisplayString>
-    <StringView Condition="m_data.m_allocator.m_last > 1">&amp;m_data[0],s8</StringView>
+    <DisplayString Condition="m_data.m_allocator.m_first!=m_data.m_allocator.m_last">{m_data.m_allocator.m_first,s8}</DisplayString>
+    <StringView Condition="m_data.m_allocator.m_last > 1">m_data.m_allocator.m_first,s8</StringView>
     <Expand>
       <Item Name="[size]" ExcludeView="simple">m_data.m_allocator.m_last - m_data.m_allocator.m_first</Item>
       <Item Name="[capacity]" ExcludeView="simple">m_data.m_allocator.m_end - m_data.m_allocator.m_first</Item>
       <ArrayItems>
         <Size>m_data.m_allocator.m_last - m_data.m_allocator.m_first - 1</Size>
-        <ValuePointer>&amp;m_data[0],d</ValuePointer>
+        <ValuePointer>m_data.m_allocator.m_first, d</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>
