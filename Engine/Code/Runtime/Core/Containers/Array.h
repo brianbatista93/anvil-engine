@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Memory/Allocators/DynamicAllocator.h"
+#include "Misc/CRC32.h"
 
 /**
  * @brief Arrays of elements of contiguous allocated memory.
@@ -380,3 +381,9 @@ operator>=(const TArray<T, Alloc>& lhs, const TArray<T, Alloc>& rhs)
 {
     return !(lhs < rhs);
 }
+
+template<class T>
+struct TCRC32<TArray<T>>
+{
+    uint32 operator()(const TArray<T>& value) { return CRC32::Get((uint8*)value.GetData(), value.GetSize() * sizeof(T)); }
+};

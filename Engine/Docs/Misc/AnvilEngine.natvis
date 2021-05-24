@@ -40,9 +40,16 @@
     </Expand>
   </Type>
 
-  <Type Name="TNetMessageHeader&lt;*&gt;">
-    <DisplayString Condition="Size == 0">{{id = {ID}, [empty]}}</DisplayString>
-    <DisplayString Condition="Size != 0">{{id = {ID}, size = {Size}}}</DisplayString>
+  <Type Name="TSet&lt;*&gt;">
+    <DisplayString Condition="m_count == 0">[empty]</DisplayString>
+    <DisplayString>{{ size={m_count} }}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">m_count</Item>
+      <IndexListItems Condition="m_count != 0">
+        <Size>m_data.m_allocator.m_last - m_data.m_allocator.m_first</Size>
+        <ValueNode>*reinterpret_cast&lt;ValueType*&gt;(m_data.m_allocator.m_first + $i)</ValueNode>
+      </IndexListItems>
+    </Expand>
   </Type>
 
 </AutoVisualizer>
