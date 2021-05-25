@@ -13,19 +13,27 @@ struct hash<String>
 } // namespace std
 
 TEST_SUITE_BEGIN("Containers");
-TEST_CASE("[String] Constructors and Assignments")
+TEST_CASE("[Set] Constructors and Assignments")
 {
-    String       a = ATEXT("Brian");
-    TSet<String> set;
-    set.Add(a);
-    set.Add(a);
-    set.Add(ATEXT("Anderson"));
+    SUBCASE("Default constructor")
+    {
+        TSet<String> set;
+        CHECK_EQ(set.GetCount(), 0);
+        CHECK(set.IsEmpty());
+    }
+}
 
-    set.Remove(a);
-
-    std::set<String> stdSet;
-    stdSet.insert(a);
-    stdSet.insert(a);
-    stdSet.insert(ATEXT("Anderson"));
+TEST_CASE("[Set] Inserting and Removing")
+{
+    SUBCASE("Default constructor")
+    {
+        TSet<String> set;
+        set.Add(ATEXT("Abacate"));
+        set.Add(ATEXT("Pera"));
+        set.Add(ATEXT("Banana"));
+        set.Add(ATEXT("Uva"));
+        set.Add(ATEXT("Abacaxi"));
+        set.Add(ATEXT("Açaí"));
+    }
 }
 TEST_SUITE_END();

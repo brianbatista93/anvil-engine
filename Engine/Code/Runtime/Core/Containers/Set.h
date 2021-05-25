@@ -3,54 +3,143 @@
 #include "Array.h"
 #include "Misc/CRC32.h"
 
-template<class T, class THash = TCRC32<T>>
+class SetKey
+{
+    template<class T, class THash, class TComp>
+    friend class TSet;
+
+  public:
+    constexpr SetKey()
+      : Index(~0u)
+    {}
+
+    constexpr explicit SetKey(uint32 index)
+      : Index(index)
+    {}
+
+    constexpr bool IsValid() const { return Index != ~0u; }
+
+  private:
+    uint32 Index;
+};
+
+template<class T, class THash = TCRC32<T>, class TComp = std::less<T>>
 class TSet
 {
   public:
     using ValueType = T;
+    using HashFunc  = THash;
+    using CompFunc  = TComp;
 
-    constexpr explicit TSet(uint32 initialSize = 1024)
-      : m_data(initialSize)
-      , m_usedIndices(initialSize)
-      , m_count(0)
+    /**
+     * @brief Default constructor.
+    */
+    constexpr explicit TSet() noexcept
+      : m_lookup(4)
     {}
 
-    constexpr void Add(ValueType&& item) { InsertItem<ValueType&&>(std::move(item)); }
-
-    constexpr void Add(const ValueType& item) { InsertItem<const ValueType&>(item); }
-
-    constexpr void Remove(const ValueType& item)
+    /**
+     * @brief Adds an item to the container.
+     * @param item Item to be added.
+    */
+    constexpr void Add(ValueType&& item)
     {
-        const uint32 index = GetIndex(item);
-        if (m_usedIndices[index]) {
-            m_count--;
-            m_usedIndices[index] = false;
+        const uint32 currIndex = m_data.GetSize();
+        const uint32 hash      = THash()(item);
+
+        if (currIndex >= (m_lookup.GetSize() - 1)) {
+            ReHash();
+        }
+
+        if (!HasKey(hash)) {
+            const uint32 keyIndex = GetKeyIndex(hash);
+            m_lookup[keyIndex]    = SetKey(currIndex);
+            m_data.Add(std::move(item));
         }
     }
 
-  private:
-    constexpr uint32 GetIndex(const ValueType& item)
+    constexpr ValueType* FindByKey(uint32 key)
     {
-        const uint32 hash  = static_cast<uint32>(m_hash(item));
-        const uint32 index = hash & (m_data.GetSize() - 1);
+        const uint32 keyIndex = GetKeyIndex(key);
+        const SetKey foundKey = m_lookup[keyIndex];
+
+        if (foundKey.IsValid()) {
+            const uint32 index = foundKey.Index;
+            return &m_data[index];
+        }
+
+        return nullptr;
+    }
+
+    constexpr ValueType* Find(const ValueType& item)
+    {
+        const uint32 hash = THash()(item);
+        return FindByKey(hash);
+    }
+
+    constexpr const ValueType* Find(const ValueType& item) const
+    {
+        const uint32 hash = THash()(item);
+        return FindByKey(hash);
+    }
+
+    constexpr bool HasItem(const ValueType& item) { return Find(item) != nullptr; }
+
+    constexpr bool HasKey(uint32 key) { return FindByKey(key) != nullptr; }
+
+    /**
+     * @brief Returns the number of itens inside the Set.
+     * @return The number of itens inside the Set.
+    */
+    constexpr uint32 GetCount() const { return 0; }
+
+    /**
+     * @brief Check if the set is empty.
+     * @return True if empty false otherwise.
+    */
+    constexpr bool IsEmpty() const { return GetCount() == 0; }
+
+    /**
+     * @brief Returns the internal TArray's size.
+     * @return The internal TArray's size.
+    */
+    constexpr uint32 GetSize() const { return m_data.GetSize(); }
+
+    /**
+     * @brief Returns the internal TArray's capacity.
+     * @return The internal TArray's capacity.
+    */
+    constexpr uint32 GetCapacity() const { return m_data.GetCapacity(); }
+
+  private:
+    constexpr void ReHash()
+    {
+        const uint32 currSize = m_lookup.GetSize();
+        const uint32 newSize  = currSize + 4;
+        m_lookup.Resize(newSize);
+
+        TArray<SetKey> tempLookup(newSize);
+
+        for (uint32 i = 0; i < currSize; i++) {
+            SetKey& key = m_lookup[i];
+            if (key.IsValid()) {
+                uint32 index         = key.Index;
+                uint32 hash          = THash()(m_data[index]);
+                uint32 newIndex      = GetKeyIndex(hash);
+                tempLookup[newIndex] = m_lookup[i];
+            }
+        }
+
+        m_lookup = std::move(tempLookup);
+    }
+
+    constexpr uint32 GetKeyIndex(uint32 key) const
+    {
+        const uint32 index = key & (m_lookup.GetSize() - 1u);
         return index;
     }
 
-    template<class TItem>
-    constexpr void InsertItem(typename TIdentity<TItem>::Type item)
-    {
-        const uint32 index = GetIndex(item);
-        if (!m_usedIndices[index]) {
-            m_data[index]        = std::move(item);
-            m_usedIndices[index] = true;
-            m_count++;
-        }
-        
-    }
-
   private:
-    TArray<T>    m_data;
-    TArray<bool> m_usedIndices;
-    THash        m_hash;
-    uint32       m_count;
+    TArray<ValueType> m_data;
+    TArray<SetKey>    m_lookup;
 };
