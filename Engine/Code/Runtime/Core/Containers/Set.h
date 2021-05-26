@@ -35,7 +35,7 @@ class TSet
      * @brief Default constructor.
     */
     constexpr explicit TSet() noexcept
-      : m_lookup(4)
+      : m_lookup(8)
     {}
 
     /**
@@ -45,20 +45,20 @@ class TSet
     constexpr void Add(ValueType&& item)
     {
         const uint32 currIndex = m_data.GetSize();
-        const uint32 hash      = THash()(item);
+        const uint64 hash      = (uint64)THash()(item);
 
         if (currIndex >= (m_lookup.GetSize() - 1)) {
             ReHash();
         }
 
         if (!HasKey(hash)) {
-            const uint32 keyIndex = GetKeyIndex(hash);
+            const uint64 keyIndex = GetKeyIndex(hash);
             m_lookup[keyIndex]    = SetKey(currIndex);
             m_data.Add(std::move(item));
         }
     }
 
-    constexpr ValueType* FindByKey(uint32 key)
+    constexpr ValueType* FindByKey(uint64 key)
     {
         const uint32 keyIndex = GetKeyIndex(key);
         const SetKey foundKey = m_lookup[keyIndex];
@@ -73,19 +73,19 @@ class TSet
 
     constexpr ValueType* Find(const ValueType& item)
     {
-        const uint32 hash = THash()(item);
+        const uint64 hash = (uint64)THash()(item);
         return FindByKey(hash);
     }
 
     constexpr const ValueType* Find(const ValueType& item) const
     {
-        const uint32 hash = THash()(item);
+        const uint64 hash = (uint64)THash()(item);
         return FindByKey(hash);
     }
 
     constexpr bool HasItem(const ValueType& item) { return Find(item) != nullptr; }
 
-    constexpr bool HasKey(uint32 key) { return FindByKey(key) != nullptr; }
+    constexpr bool HasKey(uint64 key) { return FindByKey(key) != nullptr; }
 
     /**
      * @brief Returns the number of itens inside the Set.
@@ -115,7 +115,7 @@ class TSet
     constexpr void ReHash()
     {
         const uint32 currSize = m_lookup.GetSize();
-        const uint32 newSize  = currSize + 4;
+        const uint32 newSize  = currSize * 2;
         m_lookup.Resize(newSize);
 
         TArray<SetKey> tempLookup(newSize);
@@ -133,9 +133,9 @@ class TSet
         m_lookup = std::move(tempLookup);
     }
 
-    constexpr uint32 GetKeyIndex(uint32 key) const
+    constexpr uint64 GetKeyIndex(uint64 key) const
     {
-        const uint32 index = key & (m_lookup.GetSize() - 1u);
+        const uint64 index = key & (uint64)(m_lookup.GetSize() - 1u);
         return index;
     }
 
