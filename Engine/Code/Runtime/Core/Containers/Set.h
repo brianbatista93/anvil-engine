@@ -50,7 +50,7 @@ class SetIndexId
     constexpr operator int32() const { return m_index; }
 };
 
-template<class T>
+template<class TItem>
 class TSetItem
 {
   public:
@@ -59,7 +59,7 @@ class TSetItem
     /** Initialization constructor. */
     template<typename InitType>
     explicit constexpr TSetItem(InitType&& InValue)
-      : Data(std::forward<InitType>(InValue))
+      : Value(std::forward<InitType>(InValue))
     {}
 
     TSetItem(TSetItem&&)      = default;
@@ -69,10 +69,10 @@ class TSetItem
 
     mutable SetIndexId NextIndexId;
     mutable int32      Index = 0;
-    T                  Data;
+    TItem              Value;
 };
 
-template<class T, class THash = TCRC32<T>, class TComp = std::equal_to<size_t>>
+template<class T, class THash = TCRC32<T>, class TComp = std::equal_to<THash::ResultType>>
 class TSet
 {
   public:
@@ -118,15 +118,21 @@ class TSet
     */
     constexpr void Add(T&& item) { Emplace(std::move(item)); }
 
+    /**
+     * @brief Adds an item to the container.
+     * @param item Item to be added.
+    */
+    constexpr void Add(const T& item) { Emplace(item); }
+
     template<class Args>
     constexpr SetIndexId Emplace(Args&& args)
     {
-        const uint32 bucketIndex   = m_data.AddSlots(1);
-        void*        bucketAddress = reinterpret_cast<void*>(m_data.GetData() + bucketIndex);
+        const uint32 bucketIndex   = m_items.AddSlots(1);
+        void*        bucketAddress = reinterpret_cast<void*>(m_items.GetData() + bucketIndex);
         ValueType&   item          = *new (bucketAddress) ValueType(std::forward<Args>(args));
         SetIndexId   indexId(bucketIndex);
 
-        HashResult hash = static_cast<HashResult>(THash()(item.Data));
+        HashResult hash = static_cast<HashResult>(THash()(item.Value));
         if (!ReplaceExisting(hash, item, indexId)) {
             RehashOrLink(hash, item, indexId);
         }
@@ -136,17 +142,17 @@ class TSet
 
     constexpr void RehashOrLink(HashResult hash, ValueType& item, SetIndexId itemId)
     {
-        if (!ConditionalRehash(m_data.GetSize())) {
+        if (!ConditionalRehash(m_items.GetSize())) {
             LinkItem(itemId, item, hash);
         }
     }
 
     constexpr SetIndexId FindId(const T& key) const
     {
-        if (!m_data.IsEmpty()) {
+        if (!m_items.IsEmpty()) {
             const HashResult hash = THash()(key);
-            for (SetIndexId itemId = GetTypedHash(hash); itemId.IsValid(); itemId = m_data[itemId].NextIndexId) {
-                const HashResult otherHash = THash()(m_data[itemId].Data);
+            for (SetIndexId itemId = GetTypedHash(hash); itemId.IsValid(); itemId = m_items[itemId].NextIndexId) {
+                const HashResult otherHash = THash()(m_items[itemId].Value);
                 if (TComp()(hash, otherHash)) {
                     return itemId;
                 }
@@ -160,7 +166,7 @@ class TSet
     {
         SetIndexId itemId = FindId(key);
         if (itemId.IsValid()) {
-            return &m_data[itemId].Data;
+            return &m_items[itemId].Value;
         }
         return nullptr;
     }
@@ -169,9 +175,9 @@ class TSet
 
     constexpr SetIndexId FindIdByHash(HashResult hash) const
     {
-        if (!m_data.IsEmpty()) {
-            for (SetIndexId itemId = GetTypedHash(hash); itemId.IsValid(); itemId = m_data[itemId].NextIndexId) {
-                HashResult otherHash = static_cast<HashResult>(THash()(m_data[itemId].Data));
+        if (!m_items.IsEmpty()) {
+            for (SetIndexId itemId = GetTypedHash(hash); itemId.IsValid(); itemId = m_items[itemId].NextIndexId) {
+                HashResult otherHash = static_cast<HashResult>(THash()(m_items[itemId].Value));
                 if (TComp()(hash, otherHash)) {
                     return itemId;
                 }
@@ -208,7 +214,7 @@ class TSet
             GetTypedHash(i) = SetIndexId();
         }
 
-        for (auto& it : m_data) {
+        for (auto& it : m_items) {
             HashItem(SetIndexId(it.Index), it);
         }
     }
@@ -218,7 +224,7 @@ class TSet
         return (!m_hashSize || m_hashSize < DesiredHashSize);
     }
 
-    constexpr void HashItem(SetIndexId itemId, const ValueType& item) const { LinkItem(itemId, item, THash()(item.Data)); }
+    constexpr void HashItem(SetIndexId itemId, const ValueType& item) const { LinkItem(itemId, item, THash()(item.Value)); }
 
     constexpr void LinkItem(SetIndexId itemId, const ValueType& item, HashResult hash) const
     {
@@ -232,11 +238,11 @@ class TSet
     constexpr bool ReplaceExisting(HashResult hash, ValueType& item, SetIndexId& id)
     {
         bool isValid = false;
-        if (m_data.GetSize() != 1) {
+        if (m_items.GetSize() != 1) {
             SetIndexId id = FindIdByHash(hash);
             isValid       = id.IsValid();
             if (isValid) {
-                MoveByRealocate(m_data[id].Data, item.Data);
+                MoveByRealocate(m_items[id].Value, item.Value);
 
                 return true;
             }
@@ -247,7 +253,7 @@ class TSet
 
     constexpr void Append(const TArray<T>& arr)
     {
-        Reserve(m_data.GetSize() + arr.GetSize());
+        Reserve(m_items.GetSize() + arr.GetSize());
         for (const T& item : arr) {
             Add(item);
         }
@@ -255,7 +261,7 @@ class TSet
 
     constexpr void Append(TArray<T>&& arr)
     {
-        Reserve(m_data.GetSize() + arr.GetSize());
+        Reserve(m_items.GetSize() + arr.GetSize());
         for (T& item : arr) {
             Add(std::move(item));
         }
@@ -265,19 +271,23 @@ class TSet
 
     constexpr void Append(std::initializer_list<T> list)
     {
-        Reserve(m_data.GetSize() + (uint32)list.size());
+        Reserve(m_items.GetSize() + (uint32)list.size());
         for (const T& item : list) {
             Add(item);
         }
     }
 
+    constexpr T& operator[](SetIndexId id) { return m_items[id].Value; }
+
+    constexpr const T& operator[](SetIndexId id) const { return m_items[id].Value; }
+
     /**
      * @brief Returns the number of itens inside the Set.
      * @return The number of itens inside the Set.
     */
-    constexpr uint32 GetCount() const { return m_data.GetSize(); }
+    constexpr uint32 GetCount() const { return m_items.GetSize(); }
 
-    constexpr size_t GetSizeInBytes() const { return m_data.GetSizeInBytes() + m_hashes.GetSizeInBytes() + sizeof(m_hashSize); }
+    constexpr size_t GetSizeInBytes() const { return m_items.GetSizeInBytes() + m_hashes.GetSizeInBytes() + sizeof(m_hashSize); }
 
     /**
      * @brief Check if the set is empty.
@@ -289,7 +299,7 @@ class TSet
      * @brief Returns the internal TArray's capacity.
      * @return The internal TArray's capacity.
     */
-    constexpr uint32 GetCapacity() const { return m_data.GetCapacity(); }
+    constexpr uint32 GetCapacity() const { return m_items.GetCapacity(); }
 
     constexpr SetIndexId& GetTypedHash(HashResult hashIndex) const
     {
@@ -298,7 +308,7 @@ class TSet
     }
 
   private:
-    TArray<ValueType>  m_data;
+    TArray<ValueType>  m_items;
     TArray<SetIndexId> m_hashes;
     uint32             m_hashSize = 0;
 };

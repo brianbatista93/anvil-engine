@@ -40,15 +40,26 @@
     </Expand>
   </Type>
 
+  <Type Name="TPair&lt;*,*&gt;">
+    <DisplayString>({Key}, {Value})</DisplayString>
+  </Type>
+
   <Type Name="TSet&lt;*&gt;">
-    <DisplayString Condition="m_count == 0">[empty]</DisplayString>
-    <DisplayString>{{ size={m_count} }}</DisplayString>
+    <DisplayString Condition="m_items.m_allocator.m_first==m_items.m_allocator.m_last">[empty]</DisplayString>
+    <DisplayString>{{ size={m_items.m_allocator.m_last - m_items.m_allocator.m_first} }}</DisplayString>
     <Expand>
-      <Item Name="[size]" ExcludeView="simple">m_count</Item>
-      <IndexListItems Condition="m_count != 0">
-        <Size>m_data.m_allocator.m_last - m_data.m_allocator.m_first</Size>
-        <ValueNode>*reinterpret_cast&lt;ValueType*&gt;(m_data.m_allocator.m_first + $i)</ValueNode>
+      <Item Name="[size]" ExcludeView="simple">m_items.m_allocator.m_last - m_items.m_allocator.m_first</Item>
+      <IndexListItems>
+        <Size>m_items.m_allocator.m_last - m_items.m_allocator.m_first</Size>
+        <ValueNode>((TSetItem &lt;$T1&gt; *)m_items.m_allocator.m_first)[$i].Value</ValueNode>
       </IndexListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="TMap&lt;*&gt;">
+    <DisplayString>{m_pairs}</DisplayString>
+    <Expand>
+      <ExpandedItem>m_pairs</ExpandedItem>
     </Expand>
   </Type>
 
