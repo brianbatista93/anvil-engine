@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Array.h"
+#include "Misc/CRC32.h"
 #include "StringFormatArgument.h"
 #include "TypeTraits.h"
 
@@ -357,3 +358,10 @@ GetSize(const String& str)
 {
     return str.GetLength();
 }
+
+template<>
+struct TCRC32<String>
+{
+    using ResultType = uint32;
+    ResultType operator()(const String& value) const { return CRC32::Get((uint8*)*value, value.GetLength() * sizeof(String::ValueType)); }
+};
