@@ -28,7 +28,7 @@ TEST_CASE("[Set] Inserting and Removing")
 {
     SUBCASE("Default constructor")
     {
-        TSet<String, std::hash<String>> set;
+        TSet<String> set;
         set.Add(ATEXT("honeydew"));
         set.Add(ATEXT("grapefruit"));
         set.Add(ATEXT("grape"));

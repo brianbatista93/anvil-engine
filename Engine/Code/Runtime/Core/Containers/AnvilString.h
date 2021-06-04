@@ -362,5 +362,6 @@ GetSize(const String& str)
 template<>
 struct TCRC32<String>
 {
-    uint32 operator()(const String& value) const { return CRC32::Get((uint8*)*value, value.GetLength() * sizeof(String::ValueType)); }
+    using ResultType = uint32;
+    ResultType operator()(const String& value) const { return CRC32::Get((uint8*)*value, value.GetLength() * sizeof(String::ValueType)); }
 };

@@ -11,5 +11,6 @@ class CRC32
 template<class T>
 struct TCRC32
 {
-    uint32 operator()(const T& value) { return CRC32::Get(&value, (uint32)sizeof(T)); }
+    using ResultType = uint32;
+    ResultType operator()(const T& value) { return CRC32::Get(&value, (uint32)sizeof(T)); }
 };

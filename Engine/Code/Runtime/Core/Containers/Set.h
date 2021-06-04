@@ -1,7 +1,25 @@
 #pragma once
 
 #include "Array.h"
+#include "Math/AnvilMath.h"
 #include "Misc/CRC32.h"
+#include "Misc/StdHash.h"
+
+template<class T>
+constexpr void
+MoveByRealocate(T& a, T& b)
+{
+    a.~T();
+
+    T*       dest   = &a;
+    const T* source = &b;
+
+    typedef T DestructbleT;
+
+    new (dest) T(*source);
+    ++(T*&)dest;
+    (source++)->DestructbleT::~DestructbleT();
+}
 
 class SetIndexId
 {
@@ -49,23 +67,50 @@ class TSetItem
     TSetItem& operator=(TSetItem&&) = default;
     TSetItem& operator=(const TSetItem&) = default;
 
-    SetIndexId NextIndexId;
-    int32      Index;
-    T          Data;
+    mutable SetIndexId NextIndexId;
+    mutable int32      Index = 0;
+    T                  Data;
 };
 
-template<class T, class THash = TCRC32<T>, class TComp = std::less<T>>
+template<class T, class THash = TCRC32<T>, class TComp = std::equal_to<size_t>>
 class TSet
 {
   public:
-    using ValueType = TSetItem<T>;
-    using HashFunc  = THash;
-    using CompFunc  = TComp;
+    using ValueType  = TSetItem<T>;
+    using HashFunc   = THash;
+    using CompFunc   = TComp;
+    using HashResult = typename THash::ResultType;
 
     /**
      * @brief Default constructor.
     */
-    constexpr explicit TSet() noexcept {}
+    constexpr explicit TSet() noexcept
+      : m_hashSize(0)
+    {}
+
+    constexpr TSet(const TSet& other)
+      : m_hashSize(0)
+    {
+        *this = other;
+    }
+
+    constexpr explicit TSet(const TArray<T>& arr)
+      : m_hashSize(0)
+    {
+        Append(arr);
+    }
+
+    constexpr explicit TSet(TArray<T>&& arr)
+      : m_hashSize(0)
+    {
+        Append(std::move(arr));
+    }
+
+    constexpr TSet(std::initializer_list<T> list)
+      : m_hashSize(0)
+    {
+        Append(list);
+    }
 
     /**
      * @brief Adds an item to the container.
@@ -81,13 +126,149 @@ class TSet
         ValueType&   item          = *new (bucketAddress) ValueType(std::forward<Args>(args));
         SetIndexId   indexId(bucketIndex);
 
-        uint32 hash = static_cast<uint32>(THash()(item.Data));
-
-        // if hash isn't on bucket
-        //      if isn't allowed to override
-        //          Rehash and Link
+        HashResult hash = static_cast<HashResult>(THash()(item.Data));
+        if (!ReplaceExisting(hash, item, indexId)) {
+            RehashOrLink(hash, item, indexId);
+        }
 
         return indexId;
+    }
+
+    constexpr void RehashOrLink(HashResult hash, ValueType& item, SetIndexId itemId)
+    {
+        if (!ConditionalRehash(m_data.GetSize())) {
+            LinkItem(itemId, item, hash);
+        }
+    }
+
+    constexpr SetIndexId FindId(const T& key) const
+    {
+        if (!m_data.IsEmpty()) {
+            const HashResult hash = THash()(key);
+            for (SetIndexId itemId = GetTypedHash(hash); itemId.IsValid(); itemId = m_data[itemId].NextIndexId) {
+                const HashResult otherHash = THash()(m_data[itemId].Data);
+                if (TComp()(hash, otherHash)) {
+                    return itemId;
+                }
+            }
+        }
+
+        return SetIndexId();
+    }
+
+    constexpr T* Find(const T& key)
+    {
+        SetIndexId itemId = FindId(key);
+        if (itemId.IsValid()) {
+            return &m_data[itemId].Data;
+        }
+        return nullptr;
+    }
+
+    constexpr const T* Find(const T& key) const { return const_cast<TSet*>(this)->Find(key); }
+
+    constexpr SetIndexId FindIdByHash(HashResult hash) const
+    {
+        if (!m_data.IsEmpty()) {
+            for (SetIndexId itemId = GetTypedHash(hash); itemId.IsValid(); itemId = m_data[itemId].NextIndexId) {
+                HashResult otherHash = static_cast<HashResult>(THash()(m_data[itemId].Data));
+                if (TComp()(hash, otherHash)) {
+                    return itemId;
+                }
+            }
+        }
+
+        return SetIndexId();
+    }
+
+    constexpr bool ConditionalRehash(uint32 hashCount)
+    {
+        const uint32 desiredHashSize = (hashCount >= 4) ? Math::RoundUpToPowerOfTwo(hashCount / 2 + 8) : 1;
+
+        if (ShouldRehash(hashCount, desiredHashSize)) {
+            m_hashSize = desiredHashSize;
+            Rehash();
+            return true;
+        }
+
+        return false;
+    }
+
+    constexpr bool Contains(const T& key)
+    {
+        const HashResult hash = THash()(key);
+        return FindIdByHash(hash).IsValid();
+    }
+
+    constexpr void Rehash()
+    {
+        m_hashes.Resize(m_hashSize);
+
+        for (uint32 i = 0; i < m_hashSize; i++) {
+            GetTypedHash(i) = SetIndexId();
+        }
+
+        for (auto& it : m_data) {
+            HashItem(SetIndexId(it.Index), it);
+        }
+    }
+
+    constexpr bool ShouldRehash(uint32 NumHashedElements, uint32 DesiredHashSize) const
+    {
+        return (!m_hashSize || m_hashSize < DesiredHashSize);
+    }
+
+    constexpr void HashItem(SetIndexId itemId, const ValueType& item) const { LinkItem(itemId, item, THash()(item.Data)); }
+
+    constexpr void LinkItem(SetIndexId itemId, const ValueType& item, HashResult hash) const
+    {
+        const HashResult index = hash & (m_hashSize - 1);
+        item.Index             = static_cast<uint32>(index);
+
+        item.NextIndexId         = GetTypedHash(item.Index);
+        GetTypedHash(item.Index) = itemId;
+    }
+
+    constexpr bool ReplaceExisting(HashResult hash, ValueType& item, SetIndexId& id)
+    {
+        bool isValid = false;
+        if (m_data.GetSize() != 1) {
+            SetIndexId id = FindIdByHash(hash);
+            isValid       = id.IsValid();
+            if (isValid) {
+                MoveByRealocate(m_data[id].Data, item.Data);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    constexpr void Append(const TArray<T>& arr)
+    {
+        Reserve(m_data.GetSize() + arr.GetSize());
+        for (const T& item : arr) {
+            Add(item);
+        }
+    }
+
+    constexpr void Append(TArray<T>&& arr)
+    {
+        Reserve(m_data.GetSize() + arr.GetSize());
+        for (T& item : arr) {
+            Add(std::move(item));
+        }
+
+        arr.Clear();
+    }
+
+    constexpr void Append(std::initializer_list<T> list)
+    {
+        Reserve(m_data.GetSize() + (uint32)list.size());
+        for (const T& item : list) {
+            Add(item);
+        }
     }
 
     /**
@@ -95,6 +276,8 @@ class TSet
      * @return The number of itens inside the Set.
     */
     constexpr uint32 GetCount() const { return m_data.GetSize(); }
+
+    constexpr size_t GetSizeInBytes() const { return m_data.GetSizeInBytes() + m_hashes.GetSizeInBytes() + sizeof(m_hashSize); }
 
     /**
      * @brief Check if the set is empty.
@@ -108,6 +291,14 @@ class TSet
     */
     constexpr uint32 GetCapacity() const { return m_data.GetCapacity(); }
 
+    constexpr SetIndexId& GetTypedHash(HashResult hashIndex) const
+    {
+        const uint32 hashSize = m_hashes.GetSize();
+        return ((SetIndexId*)m_hashes.GetData())[hashIndex & (hashSize - 1)];
+    }
+
   private:
-    TArray<ValueType> m_data;
+    TArray<ValueType>  m_data;
+    TArray<SetIndexId> m_hashes;
+    uint32             m_hashSize = 0;
 };

@@ -163,6 +163,8 @@ class TArray
     */
     constexpr uint32 GetSize() const { return (uint32)m_allocator.GetSize(); }
 
+    constexpr size_t GetSizeInBytes() const { return (size_t)GetCapacity() * sizeof(T); }
+
     /**
      * @brief Returns the capacity of the array.
      * @return The capacity (in bytes) of the array.
