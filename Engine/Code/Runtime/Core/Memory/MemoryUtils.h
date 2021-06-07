@@ -78,6 +78,20 @@ class MemoryUtils
         }
     }
 
+    template<class ItemType, class SizeType>
+    static constexpr void DestroyElements(ItemType* item, SizeType count)
+    {
+        if constexpr (!std::is_trivially_destructible_v<ItemType>) {
+            while (count) {
+                class DestructItemsElementType = ItemType;
+
+                item->DestructItemsElementType::~DestructItemsElementType();
+                ++item;
+                --count;
+            }
+        }
+    }
+
     static void CopyMemory(void* dst, const void* begin, uint64 size) { memcpy(dst, begin, size); }
 
     static void CopyMemory(void* dst, const void* begin, const void* end)

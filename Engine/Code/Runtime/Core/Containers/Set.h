@@ -76,7 +76,7 @@ template<class T, class THash = TCRC32<T>, class TComp = std::equal_to<THash::Re
 class TSet
 {
   public:
-    using ValueType  = TSetItem<T>;
+    using ItemType  = TSetItem<T>;
     using HashFunc   = THash;
     using CompFunc   = TComp;
     using HashResult = typename THash::ResultType;
@@ -129,7 +129,7 @@ class TSet
     {
         const uint32 bucketIndex   = m_items.AddSlots(1);
         void*        bucketAddress = reinterpret_cast<void*>(m_items.GetData() + bucketIndex);
-        ValueType&   item          = *new (bucketAddress) ValueType(std::forward<Args>(args));
+        ItemType&   item          = *new (bucketAddress) ItemType(std::forward<Args>(args));
         SetIndexId   indexId(bucketIndex);
 
         HashResult hash = static_cast<HashResult>(THash()(item.Value));
@@ -140,7 +140,7 @@ class TSet
         return indexId;
     }
 
-    constexpr void RehashOrLink(HashResult hash, ValueType& item, SetIndexId itemId)
+    constexpr void RehashOrLink(HashResult hash, ItemType& item, SetIndexId itemId)
     {
         if (!ConditionalRehash(m_items.GetSize())) {
             LinkItem(itemId, item, hash);
@@ -224,9 +224,9 @@ class TSet
         return (!m_hashSize || m_hashSize < DesiredHashSize);
     }
 
-    constexpr void HashItem(SetIndexId itemId, const ValueType& item) const { LinkItem(itemId, item, THash()(item.Value)); }
+    constexpr void HashItem(SetIndexId itemId, const ItemType& item) const { LinkItem(itemId, item, THash()(item.Value)); }
 
-    constexpr void LinkItem(SetIndexId itemId, const ValueType& item, HashResult hash) const
+    constexpr void LinkItem(SetIndexId itemId, const ItemType& item, HashResult hash) const
     {
         const HashResult index = hash & (m_hashSize - 1);
         item.Index             = static_cast<uint32>(index);
@@ -235,7 +235,7 @@ class TSet
         GetTypedHash(item.Index) = itemId;
     }
 
-    constexpr bool ReplaceExisting(HashResult hash, ValueType& item, SetIndexId& id)
+    constexpr bool ReplaceExisting(HashResult hash, ItemType& item, SetIndexId& id)
     {
         bool isValid = false;
         if (m_items.GetSize() != 1) {
@@ -308,7 +308,7 @@ class TSet
     }
 
   private:
-    TArray<ValueType>  m_items;
+    TArray<ItemType>  m_items;
     TArray<SetIndexId> m_hashes;
     uint32             m_hashSize = 0;
 };

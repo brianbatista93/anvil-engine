@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Memory/Allocators/DynamicAllocator.h"
-#include "Misc/CRC32.h"
 
 /**
  * @brief Arrays of elements of contiguous allocated memory.

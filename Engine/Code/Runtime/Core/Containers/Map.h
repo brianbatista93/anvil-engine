@@ -34,8 +34,8 @@ class TMap
 {
   public:
     using KeyType   = TKey;
-    using ValueType = TValue;
-    using PairType  = TPair<KeyType, ValueType>;
+    using ItemType = TValue;
+    using PairType  = TPair<KeyType, ItemType>;
 
     constexpr TMap() {}
 
@@ -43,13 +43,13 @@ class TMap
      * @brief Adds an item to the container.
      * @param item Item to be added.
     */
-    constexpr ValueType& Add(const KeyType& key, const ValueType& item) { return Emplace(key, item); }
-    constexpr ValueType& Add(const KeyType& key, ValueType&& item) { return Emplace(key, std::move(item)); }
-    constexpr ValueType& Add(KeyType&& key, const ValueType& item) { return Emplace(std::move(key), item); }
-    constexpr ValueType& Add(KeyType&& key, ValueType&& item) { return Emplace(std::move(key), std::move(item)); }
+    constexpr ItemType& Add(const KeyType& key, const ItemType& item) { return Emplace(key, item); }
+    constexpr ItemType& Add(const KeyType& key, ItemType&& item) { return Emplace(key, std::move(item)); }
+    constexpr ItemType& Add(KeyType&& key, const ItemType& item) { return Emplace(std::move(key), item); }
+    constexpr ItemType& Add(KeyType&& key, ItemType&& item) { return Emplace(std::move(key), std::move(item)); }
 
     template<class TTKey, class TTValue>
-    ValueType& Emplace(TTKey&& key, TTValue&& value)
+    ItemType& Emplace(TTKey&& key, TTValue&& value)
     {
         const SetIndexId pairId = m_pairs.Emplace(TPair<TTKey, TTValue>(std::forward<TTKey>(key), std::forward<TTValue>(value)));
         return m_pairs[pairId].Value;

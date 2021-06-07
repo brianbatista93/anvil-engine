@@ -5,12 +5,12 @@
 /**
  * @brief Allocates contiguous resizable memory.
 */
-template<class T>
+template<class _ItemType, class _SizeType>
 class TDynamicAllocator
 {
   public:
-    using ValueType = T;
-    using SizeType  = uint64;
+    using ItemType = _ItemType;
+    using SizeType = _SizeType;
 
     /**
      * @brief Default contructor.
@@ -62,7 +62,7 @@ class TDynamicAllocator
      * @param count The number of elements.
      * @return Pointer to the allocated elements.
     */
-    ValueType* Allocate(SizeType count)
+    ItemType* Allocate(SizeType count)
     {
         if (GetSize() + count > GetCapacity()) {
             Reserve(GetSize() + count);
@@ -74,7 +74,7 @@ class TDynamicAllocator
         return m_first + offset;
     }
 
-    constexpr void Deallocate(T* ptr, SizeType count)
+    constexpr void Deallocate(ItemType* ptr, SizeType count)
     {
         m_first = nullptr;
         m_last  = nullptr;
@@ -90,44 +90,45 @@ class TDynamicAllocator
      * @brief Returns the number of elements allocated on the allocator.
      * @return The number of elements allocated on the allocator.
     */
-    constexpr SizeType GetSize() const { return m_last - m_first; }
+    constexpr SizeType GetSize() const { return static_cast<SizeType>(m_last - m_first); }
 
     /**
      * @brief Returns the max number of elements the allocator can allocate.
      * @return The max number of elements the allocator can allocate.
     */
-    constexpr SizeType GetCapacity() const { return m_end - m_first; }
+    constexpr SizeType GetCapacity() const { return static_cast<SizeType>(m_end - m_first); }
 
-    constexpr ValueType* GetData() { return m_first; }
+    constexpr ItemType* GetData() { return m_first; }
 
-    constexpr const ValueType* GetData() const { return m_first; }
-
-    /**
-     * @brief C++ iterator begin.
-     * @return A pointer to the begin.
-    */
-    constexpr ValueType* begin() noexcept { return m_first; }
+    constexpr const ItemType* GetData() const { return m_first; }
 
     /**
      * @brief C++ iterator begin.
      * @return A pointer to the begin.
     */
-    constexpr const ValueType* begin() const noexcept { return m_first; }
+    constexpr ItemType* begin() noexcept { return m_first; }
+
+    /**
+     * @brief C++ iterator begin.
+     * @return A pointer to the begin.
+    */
+    constexpr const ItemType* begin() const noexcept { return m_first; }
 
     /**
      * @brief C++ iterator end.
      * @return A pointer to the end.
     */
-    constexpr ValueType* end() noexcept { return m_last; }
+    constexpr ItemType* end() noexcept { return m_last; }
 
     /**
      * @brief C++ iterator end.
      * @return A pointer to the end.
     */
-    constexpr const ValueType* end() const noexcept { return m_last; }
+    constexpr const ItemType* end() const noexcept { return m_last; }
 
     constexpr void Destroy()
     {
+        MemoryUtils::DestroyElements(m_first, GetSize());
         if (GetCapacity()) {
             m_end  = nullptr;
             m_last = nullptr;
@@ -136,7 +137,7 @@ class TDynamicAllocator
         }
     }
 
-    constexpr void Pop(uint32 count = 1)
+    constexpr void Pop(SizeType count = 1)
     {
         AE_ASSERT(m_last);
         m_last -= count;
@@ -147,8 +148,8 @@ class TDynamicAllocator
     {
         const SizeType oldSize     = GetSize();
         const SizeType currentSize = newSize;
-        const uint64   actualSize  = static_cast<uint64>(currentSize * sizeof(ValueType));
-        ValueType*     temp        = reinterpret_cast<ValueType*>(MemoryUtils::AllocateAligned(actualSize));
+        const uint64   actualSize  = static_cast<uint64>(currentSize * sizeof(ItemType));
+        ItemType*      temp        = reinterpret_cast<ItemType*>(MemoryUtils::AllocateAligned(actualSize));
         if (oldSize > 0) {
             MemoryUtils::CopyElements(temp, m_first, GetSize());
             MemoryUtils::FreeAligned(m_first);
@@ -161,7 +162,7 @@ class TDynamicAllocator
     }
 
   private:
-    ValueType* m_first = nullptr;
-    ValueType* m_last  = nullptr;
-    ValueType* m_end   = nullptr;
+    ItemType* m_first = nullptr;
+    ItemType* m_last  = nullptr;
+    ItemType* m_end   = nullptr;
 };

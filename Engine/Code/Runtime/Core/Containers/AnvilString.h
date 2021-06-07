@@ -103,7 +103,7 @@ class TCStringOperations
 class String
 {
   public:
-    using ValueType = tchar;
+    using ItemType = tchar;
 
     static constexpr uint32 NPos = ~0u;
 
@@ -130,7 +130,7 @@ class String
         }
     }
 
-    constexpr String(const ValueType* begin, const ValueType* end)
+    constexpr String(const ItemType* begin, const ItemType* end)
       : m_data(begin, end)
     {
         if (m_data[GetSize() - 1] != 0) {
@@ -142,20 +142,20 @@ class String
      * @brief Returns the string's data pointer.
      * @return The string's data pointer.
     */
-    constexpr ValueType* GetData() { return m_data.GetData(); }
+    constexpr ItemType* GetData() { return m_data.GetData(); }
 
     /**
      * @brief Returns the string's data pointer.
      * @return The string's data pointer.
     */
-    constexpr const ValueType* GetData() const { return m_data.GetData(); }
+    constexpr const ItemType* GetData() const { return m_data.GetData(); }
 
     /**
      * @brief Returns the size in bytes that this string is occuping on memory.
      * It includes the null-terminator and all indefined characters.
      * @return The size in bytes.
     */
-    constexpr uint64 GetSizeInBytes() const { return m_data.GetCapacity() * sizeof(ValueType); }
+    constexpr uint64 GetSizeInBytes() const { return m_data.GetCapacity() * sizeof(ItemType); }
 
     /**
      * @brief Returns the number of characters on the string including the null-terminator.
@@ -181,39 +181,39 @@ class String
      * @brief Returns the string as const tchar*.
      * @return Array of tchars.
     */
-    constexpr const ValueType* operator*() const { return m_data.GetData(); }
+    constexpr const ItemType* operator*() const { return m_data.GetData(); }
 
     /**
      * @brief Gets one character at an index.
      * @param index Index of the character
      * @return The character at an index.
     */
-    constexpr ValueType& operator[](uint32 index) { return m_data.GetData()[index]; }
+    constexpr ItemType& operator[](uint32 index) { return m_data.GetData()[index]; }
 
     /**
      * @brief Gets one character at an index.
      * @param index Index of the character
      * @return The character at an index.
     */
-    constexpr const ValueType& operator[](uint32 index) const { return m_data.GetData()[index]; }
+    constexpr const ItemType& operator[](uint32 index) const { return m_data.GetData()[index]; }
 
     /**
      * @brief C++ iterator begin.
      * @return A pointer to the begin.
     */
-    constexpr ValueType* begin() noexcept { return m_data.begin(); }
+    constexpr ItemType* begin() noexcept { return m_data.begin(); }
 
     /**
      * @brief C++ iterator begin.
      * @return A pointer to the begin.
     */
-    constexpr const ValueType* begin() const noexcept { return m_data.begin(); }
+    constexpr const ItemType* begin() const noexcept { return m_data.begin(); }
 
     /**
      * @brief C++ iterator end.
      * @return A pointer to the end.
     */
-    constexpr ValueType* end() noexcept
+    constexpr ItemType* end() noexcept
     {
         auto end = m_data.end();
         if (GetSize()) {
@@ -226,7 +226,7 @@ class String
      * @brief C++ iterator end.
      * @return A pointer to the end.
     */
-    constexpr const ValueType* end() const noexcept
+    constexpr const ItemType* end() const noexcept
     {
         auto end = m_data.end();
         if (GetSize()) {
@@ -338,7 +338,7 @@ class String
     }
 
   private:
-    TArray<ValueType> m_data;
+    TArray<ItemType, TDynamicAllocator<ItemType, uint32>> m_data;
 };
 
 inline tchar*
@@ -363,5 +363,5 @@ template<>
 struct TCRC32<String>
 {
     using ResultType = uint32;
-    ResultType operator()(const String& value) const { return CRC32::Get((uint8*)*value, value.GetLength() * sizeof(String::ValueType)); }
+    ResultType operator()(const String& value) const { return CRC32::Get((uint8*)*value, value.GetLength() * sizeof(String::ItemType)); }
 };

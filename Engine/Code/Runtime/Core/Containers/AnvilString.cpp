@@ -4,7 +4,7 @@
 
 template<typename Char>
 void
-AppendCharsInternal(TArray<tchar>& result, const Char* chrs, uint32 count)
+AppendCharsInternal(TArray<tchar, TDynamicAllocator<tchar, uint32>>& result, const Char* chrs, uint32 count)
 {
     if (count == 0) {
         return;
