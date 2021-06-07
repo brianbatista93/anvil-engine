@@ -1,3 +1,5 @@
+#include "Containers/ContainersFwd.h"
+
 #include "StringUtils.h"
 #include <string>
 

@@ -1,3 +1,5 @@
+#include "Containers/ContainersFwd.h"
+
 #include "AnvilString.h"
 
 template<typename Char>
