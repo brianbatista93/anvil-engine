@@ -1,12 +1,10 @@
 #pragma once
 
-template<class, class>
-class TDynamicAllocator;
+template<class>
+class THeapAllocator;
 
-template<class T>
-using DefaultDynamicAllocator = TDynamicAllocator<T, unsigned int>; // 32 bits
-template<class T>
-using DefaultDynamicAllocator64 = TDynamicAllocator<T, unsigned long long>; // 64 bits
+using DefaultHeapAllocator   = THeapAllocator<unsigned int>;       // 32 bits
+using DefaultHeapAllocator64 = THeapAllocator<unsigned long long>; // 64 bits
 
-template<class T, class Allocator = DefaultDynamicAllocator64<T>>
+template<class T, class Allocator = DefaultHeapAllocator64>
 class TArray;

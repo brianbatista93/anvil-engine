@@ -30,6 +30,23 @@ TEST_CASE("[TArray]")
         CHECK(u.IsEmpty());
     }
 
+    SUBCASE("Array pointer constructor")
+    {
+        int32* v = new int32[5] {1, 2, 3, 4, 5};
+
+        TArray<int32> u(v, v + 3);
+
+        CHECK_EQ(u.GetSize(), 3);
+        CHECK_EQ(u.GetCapacity(), 3);
+        CHECK_FALSE(u.IsEmpty());
+
+        CHECK_EQ(u[0], 1);
+        CHECK_EQ(u[1], 2);
+        CHECK_EQ(u[2], 3);
+
+        SafeDeleteArray(v);
+    }
+
     SUBCASE("Copy and List constructor")
     {
         TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
@@ -137,15 +154,15 @@ TEST_CASE("[TArray]")
         sd.a = 29;
         sd.b = 19.93f;
 
-        u.Emplace(0, sa);
-        u.Emplace(1, sb);
-        u.Emplace(2, sc);
-        u.Emplace(1, sd);
+        u.Emplace(sa);
+        u.Emplace(sb);
+        u.Emplace(sc);
+        u.Emplace(sd);
 
         CHECK_EQ(u[0].a, 1);
-        CHECK_EQ(u[1].a, 29);
-        CHECK_EQ(u[2].a, 10);
-        CHECK_EQ(u[3].a, 100);
+        CHECK_EQ(u[1].a, 10);
+        CHECK_EQ(u[2].a, 100);
+        CHECK_EQ(u[3].a, 29);
 
         u.Add(sa);
         u.Add(sb);
@@ -158,7 +175,7 @@ TEST_CASE("[TArray]")
         CHECK_EQ(u[7].a, 29);
 
         CHECK_EQ(u.GetSize(), 8);
-        CHECK_EQ(u.GetCapacity(), 9);
+        CHECK_EQ(u.GetCapacity(), 22);
     }
 
     SUBCASE("Remove At")
@@ -202,12 +219,12 @@ TEST_CASE("[TArray]")
     SUBCASE("Resize")
     {
         TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-        u.Resize(5);
+        u.AddSlots(5);
 
         CHECK_EQ(u.GetSize(), 5);
         CHECK_EQ(u.GetCapacity(), 10);
 
-        u.Resize(15, 0);
+        u.AddSlots(15);
 
         CHECK_EQ(u.GetSize(), 15);
         CHECK_EQ(u.GetCapacity(), 15);

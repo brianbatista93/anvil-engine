@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Memory/Allocators/DynamicAllocator.h"
+#include "ContainerAllocators.h"
 
 /**
  * @brief Arrays of elements of contiguous allocated memory.
@@ -17,7 +17,10 @@ class TArray
     /**
      * @brief Default constructor.
     */
-    constexpr explicit TArray() noexcept(noexcept(AllocatorType())) {}
+    constexpr explicit TArray()
+      : m_size(0)
+      , m_capacity(0)
+    {}
 
     /**
      * @brief Copy constructor.
@@ -26,7 +29,10 @@ class TArray
     */
     constexpr TArray(const TArray& other)
     {
-        m_allocator.Allocate(other.GetSize());
+        m_size     = other.m_size;
+        m_capacity = other.m_capacity;
+
+        m_allocator.Reallocate(other.m_size, sizeof(ItemType));
         MemoryUtils::CopyElements(GetData(), other.GetData(), other.GetSize());
     }
 
@@ -35,7 +41,16 @@ class TArray
      * Constructs an array with the elements of other using move semantics.
      * @param other The array to be moved.
     */
-    constexpr TArray(TArray&& other) { m_allocator = std::move(other.m_allocator); }
+    constexpr TArray(TArray&& other)
+    {
+        m_size     = other.m_size;
+        m_capacity = other.m_capacity;
+
+        m_allocator = std::move(other.m_allocator);
+
+        other.m_size     = 0;
+        other.m_capacity = 0;
+    }
 
     /**
      * @brief Constructs a array with an initial slots count.
@@ -44,8 +59,12 @@ class TArray
     */
     constexpr TArray(SizeType count)
     {
-        m_allocator.Allocate(count);
-        MemoryUtils::ConstructElements(GetData(), GetSize());
+        m_size     = count;
+        m_capacity = count;
+
+        m_allocator.Reallocate(m_size, sizeof(ItemType));
+
+        MemoryUtils::ConstructElements(GetData(), m_size);
     }
 
     /**
@@ -54,9 +73,13 @@ class TArray
     */
     constexpr TArray(std::initializer_list<ItemType> list)
     {
-        if (list.size()) {
-            m_allocator.Allocate(list.size());
-            MemoryUtils::CopyElements(GetData(), list.begin(), list.size());
+        const SizeType size = static_cast<SizeType>(list.size());
+        if (size) {
+            m_size     = size;
+            m_capacity = size;
+
+            m_allocator.Reallocate(m_size, sizeof(ItemType));
+            MemoryUtils::CopyElements(GetData(), list.begin(), m_size);
         }
     }
 
@@ -67,17 +90,22 @@ class TArray
     */
     constexpr TArray(const ItemType* begin, const ItemType* end)
     {
-        const uint64 beginAddr = reinterpret_cast<uint64>(begin);
-        const uint64 endAddr   = reinterpret_cast<uint64>(end);
-        const SizeType size      = static_cast<SizeType>(endAddr - beginAddr);
+        AE_ASSERT(begin && end);
+
+        const uint64   beginAddr = reinterpret_cast<uint64>(begin);
+        const uint64   endAddr   = reinterpret_cast<uint64>(end);
+        const SizeType size      = static_cast<SizeType>(endAddr - beginAddr) / sizeof(ItemType);
 
         AE_ASSERT(size);
 
-        m_allocator.Allocate(size / sizeof(ItemType));
-        MemoryUtils::CopyMemory(GetData(), begin, size);
+        m_size     = size;
+        m_capacity = size;
+
+        m_allocator.Reallocate(m_size, sizeof(ItemType));
+        MemoryUtils::CopyElements(GetData(), begin, m_size);
     }
 
-    ~TArray() noexcept { m_allocator.Destroy(); }
+    ~TArray() {}
 
     /**
      * @brief Copy assingment constructor.
@@ -86,17 +114,15 @@ class TArray
     */
     constexpr TArray& operator=(const TArray& other)
     {
-        if (!IsEmpty()) {
-            m_allocator.Destroy();
-        }
+        if (this != std::addressof(other)) {
+            MemoryUtils::DestroyElements(GetData(), m_size);
 
-        if (!other.IsEmpty()) {
+            m_size     = other.m_size;
+            m_capacity = other.m_capacity;
 
-            const SizeType otherSize = other.GetSize();
+            m_allocator.Reallocate(m_size, sizeof(ItemType));
 
-            m_allocator.Allocate(otherSize);
-
-            MemoryUtils::CopyElements(GetData(), other.GetData(), otherSize);
+            MemoryUtils::CopyElements(GetData(), other.GetData(), m_size);
         }
 
         return *this;
@@ -109,18 +135,17 @@ class TArray
     */
     constexpr TArray& operator=(TArray&& other) noexcept
     {
-        if (this == std::addressof(other)) {
-            return *this;
-        }
+        if (this != std::addressof(other)) {
+            MemoryUtils::DestroyElements(GetData(), m_size);
 
-        if (!IsEmpty()) {
-            m_allocator.Destroy();
-        }
+            m_size     = other.m_size;
+            m_capacity = other.m_capacity;
 
-        if (!other.IsEmpty()) {
             m_allocator = std::move(other.m_allocator);
-        }
 
+            other.m_size     = 0;
+            other.m_capacity = 0;
+        }
         return *this;
     }
 
@@ -128,43 +153,43 @@ class TArray
      * @brief Returns a pointer to the array's first element.
      * @return Pointer to the array's first element.
     */
-    constexpr ItemType* GetData() { return m_allocator.GetData(); }
+    constexpr ItemType* GetData() { return reinterpret_cast<ItemType*>(m_allocator.GetData()); }
 
     /**
      * @brief Returns a pointer to the array's first element.
      * @return Pointer to the array's first element.
     */
-    constexpr const ItemType* GetData() const { return m_allocator.GetData(); }
+    constexpr const ItemType* GetData() const { return reinterpret_cast<const ItemType*>(m_allocator.GetData()); }
 
     /**
      * @brief C++ iterator begin.
      * @return A pointer to the begin.
     */
-    constexpr ItemType* begin() noexcept { return m_allocator.begin(); }
+    constexpr ItemType* begin() { return GetData(); }
 
     /**
      * @brief C++ iterator begin.
      * @return A pointer to the begin.
     */
-    constexpr const ItemType* begin() const noexcept { return m_allocator.begin(); }
+    constexpr const ItemType* begin() const { return GetData(); }
 
     /**
      * @brief C++ iterator end.
      * @return A pointer to the end.
     */
-    constexpr ItemType* end() noexcept { return m_allocator.end(); }
+    constexpr ItemType* end() { return (begin() + m_size); }
 
     /**
      * @brief C++ iterator end.
      * @return A pointer to the end.
     */
-    constexpr const ItemType* end() const noexcept { return m_allocator.end(); }
+    constexpr const ItemType* end() const { return (begin() + m_size); }
 
     /**
      * @brief Returns the number of elements present on the array.
      * @return Number of elements of the array.
     */
-    constexpr SizeType GetSize() const { return (SizeType)m_allocator.GetSize(); }
+    constexpr SizeType GetSize() const { return m_size; }
 
     constexpr size_t GetSizeInBytes() const { return (size_t)GetCapacity() * sizeof(ItemType); }
 
@@ -172,7 +197,7 @@ class TArray
      * @brief Returns the capacity of the array.
      * @return The capacity (in bytes) of the array.
     */
-    constexpr SizeType GetCapacity() const { return (SizeType)m_allocator.GetCapacity(); }
+    constexpr SizeType GetCapacity() const { return m_capacity; }
 
     /**
      * @brief Checks if the array is empty.
@@ -207,28 +232,12 @@ class TArray
      * @param pos Position to insert new element to.
      * @return Index to the inserted element.
     */
-    template<class... Args>
-    constexpr SizeType Emplace(SizeType pos, Args&&... args)
+    template<class... ArgsType>
+    constexpr SizeType Emplace(ArgsType&&... args)
     {
-        const SizeType currentSize = GetSize();
-        if (currentSize + 1 > GetCapacity()) {
-            const SizeType newCapacity = CalculateGrowth(currentSize + 1);
-            m_allocator.Reserve(newCapacity);
-        }
-
-        if (pos > 0) {
-            for (SizeType i = GetSize(); i != pos; i--) {
-                std::swap(GetData()[i - 1], GetData()[i]);
-            }
-        }
-
-        m_allocator.Allocate(1);
-
-        ItemType* ptr = GetData() + pos;
-
-        MemoryUtils::ConstructElements(ptr, 1, std::forward<Args>(args)...);
-
-        return pos;
+        const SizeType index = AddSlots(1);
+        new (GetData() + index) ItemType(std::forward<ArgsType>(args)...);
+        return index;
     }
 
     /**
@@ -240,7 +249,7 @@ class TArray
     constexpr ItemType& Add(ItemType&& element)
     {
         CheckAddress(&element);
-        const SizeType index = Emplace(GetSize(), std::move(element));
+        const SizeType index = Emplace(std::move(element));
         return GetData()[index];
     }
 
@@ -253,7 +262,7 @@ class TArray
     constexpr ItemType& Add(const ItemType& element)
     {
         CheckAddress(&element);
-        const SizeType index = Emplace(GetSize(), element);
+        const SizeType index = Emplace(element);
         return GetData()[index];
     }
 
@@ -266,8 +275,9 @@ class TArray
     {
         AE_ASSERT(slots > 0);
         const SizeType oldSize = GetSize();
-
-        Resize(oldSize + slots);
+        if ((m_size += slots) > m_capacity) {
+            ResizeImpl();
+        }
 
         return oldSize;
     }
@@ -276,28 +286,22 @@ class TArray
      * @brief Resizes the container to contain count elements.
      * @param count New size.
     */
-    template<class... Args>
-    constexpr void Resize(SizeType count, Args&&... args)
+    constexpr void Reserve(uint32 newCapacity)
     {
-        const SizeType currentSize = GetSize();
-        if (count < currentSize) {
-            m_allocator.Reset(count);
-        } else {
-            m_allocator.Reserve(count);
-            MemoryUtils::ConstructElements(GetData() + currentSize, count - currentSize, std::forward<Args>(args)...);
-            m_allocator.Allocate(count - currentSize);
+        AE_ASSERT(newCapacity >= 0);
+        if (newCapacity) {
+            newCapacity = m_allocator.CalculateReserve(newCapacity);
+        }
+        if (newCapacity != m_capacity) {
+            m_capacity = newCapacity;
+            m_allocator.Reallocate(newCapacity, sizeof(ItemType));
         }
     }
 
     /**
      * @brief Requests the removal of unused capacity.
     */
-    constexpr void ShrinkToFit()
-    {
-        if (GetCapacity() > GetSize()) {
-            m_allocator.Reserve(GetSize());
-        }
-    }
+    constexpr void ShrinkToFit() {}
 
     /**
      * @brief Removes a count of elements starting at an index.
@@ -313,36 +317,25 @@ class TArray
         for (SizeType i = index; i < GetSize(); i++) {
             GetData()[i] = std::move(GetData()[i + count]);
         }
-
-        m_allocator.Pop(count);
     }
 
   private:
-    /**
-     * @brief Get the new capacity value from a size.
-     * @param newSize The size to calculate the new capacity from.
-     * @return The new capacity value.
-    */
-    SizeType CalculateGrowth(SizeType newSize) const
-    {
-        const SizeType oldCapacity = GetCapacity();
-        const SizeType newCapacity = oldCapacity + oldCapacity / 2;
-
-        if (newCapacity < newSize) {
-            return newSize;
-        }
-
-        return newCapacity;
-    }
-
     /**
      * @brief Verify if the addres is not present in the array.
      * @param address 
     */
     constexpr void CheckAddress(const ItemType* address) const { AE_ASSERT(address < GetData() || address >= (GetData() + GetCapacity())); }
 
+    constexpr void ResizeImpl()
+    {
+        m_capacity = m_allocator.CalculateGrowth(m_size, m_capacity);
+        m_allocator.Reallocate(m_capacity, sizeof(ItemType));
+    }
+
   private:
     AllocatorType m_allocator;
+    SizeType      m_size;
+    SizeType      m_capacity;
 };
 
 template<class ItemType, class AllocatorType>

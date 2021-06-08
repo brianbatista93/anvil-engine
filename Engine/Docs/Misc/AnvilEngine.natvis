@@ -15,15 +15,13 @@
     </Expand>
   </Type>
 
-  <Type Name="TArray&lt;*&gt;">
-    <DisplayString Condition="m_allocator.m_first==m_allocator.m_last">[empty]</DisplayString>
-    <DisplayString>{{ size={m_allocator.m_last - m_allocator.m_first} }}</DisplayString>
+  <Type Name="TArray&lt;*,*&gt;">
+    <DisplayString Condition="m_size == 0">[Empty]</DisplayString>
+    <DisplayString>Size={m_size}</DisplayString>
     <Expand>
-      <Item Name="[size]" ExcludeView="simple">m_allocator.m_last - m_allocator.m_first</Item>
-      <Item Name="[capacity]" ExcludeView="simple">m_allocator.m_end - m_allocator.m_first</Item>
-      <ArrayItems>
-        <Size>m_allocator.m_last - m_allocator.m_first</Size>
-        <ValuePointer>m_allocator.m_first</ValuePointer>
+      <ArrayItems Condition="m_size &lt;= m_capacity">
+        <Size>m_size</Size>
+        <ValuePointer>(TArray&lt;$T1,$T2&gt;::ItemType*)m_allocator.m_data</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>

@@ -44,6 +44,15 @@ class MemoryUtils
     */
     static void* AllocateAligned(uint64 size, uint64 align = 16u);
 
+    static void* ReallocateAligned(void* dst, uint64 size, uint64 align = 16u)
+    {
+        if (dst) {
+            FreeAligned(dst);
+        }
+
+        return AllocateAligned(size, align);
+    }
+
     /**
      * @brief Free an aligned memory block.
      * @param memoryBlock Pointer to memory block to be freed.
@@ -87,6 +96,26 @@ class MemoryUtils
 
                 item->DestructItemsElementType::~DestructItemsElementType();
                 ++item;
+                --count;
+            }
+        }
+    }
+
+    template<class DstItemType, class SrcItemType, class SizeType>
+    static constexpr void MemoryMove(void* dst, const SrcItemType* src, SizeType count)
+    {
+        if constexpr (
+          std::is_same_v<
+            DstItemType,
+            SrcItemType> || (std::is_trivially_copy_constructible_v<DstItemType> && std::is_trivially_copy_constructible_v<SrcItemType> && std::is_trivially_destructible_v<SrcItemType>)) {
+            memmove(dst, src, count * sizeof(SrcItemType));
+        } else {
+            while (count) {
+                using RealocateConstructItems = SrcItemType;
+
+                new (dst) DstItemType(*src);
+                ++(DstItemType*&)dst;
+                (src++)->RealocateConstructItems::~RealocateConstructItems();
                 --count;
             }
         }
