@@ -194,7 +194,10 @@ class TArray
     */
     constexpr SizeType GetSize() const { return m_size; }
 
-    constexpr size_t GetSizeInBytes() const { return (size_t)GetCapacity() * sizeof(ItemType); }
+    constexpr size_t GetSizeInBytes() const
+    {
+        return ((size_t)GetCapacity() * sizeof(ItemType)) + sizeof(m_size) + sizeof(m_capacity) + sizeof(m_allocator);
+    }
 
     /**
      * @brief Returns the capacity of the array.
@@ -463,8 +466,7 @@ class TArray
             arr.Clear(true);
 
             for (SizeType i = 0; i < arraySize; i++) {
-                ItemType item = *::new (arr) ItemType;
-                ar(item, "", "");
+                ar(*::new (arr) ItemType, "", "");
             }
         } else {
             arr.m_size = arraySize;
@@ -585,9 +587,10 @@ template<class _AllocType>
 class TArray<bool, _AllocType>
 {
   public:
-    using ItemType      = bool;
-    using AllocatorType = _AllocType;
-    using SizeType      = typename _AllocType::SizeType;
+    using ItemType       = uint8;
+    using TargetItemType = bool;
+    using AllocatorType  = _AllocType;
+    using SizeType       = typename _AllocType::SizeType;
 
     /**
      * @brief Default constructor.
@@ -596,6 +599,92 @@ class TArray<bool, _AllocType>
       : m_size(0)
       , m_capacity(0)
     {}
+
+    /**
+     * @brief Copy constructor.
+     * Constructs an array by coping the elements of other.
+     * @param other The array to be copied.
+    */
+    constexpr TArray(const TArray& other)
+    {
+        m_size     = other.m_size;
+        m_capacity = other.m_capacity;
+
+        m_allocator.Reallocate(other.m_size, 0, sizeof(ItemType));
+        MemoryUtils::CopyElements(GetData(), other.GetData(), other.GetSize());
+    }
+
+    /**
+     * @brief Move constructor.
+     * Constructs an array with the elements of other using move semantics.
+     * @param other The array to be moved.
+    */
+    constexpr TArray(TArray&& other)
+    {
+        m_size     = other.m_size;
+        m_capacity = other.m_capacity;
+
+        m_allocator = std::move(other.m_allocator);
+
+        other.m_size     = 0;
+        other.m_capacity = 0;
+    }
+
+    /**
+     * @brief Constructs a array with an initial slots count.
+     * The slots are default initialized elements.
+     * @param count The initial slots count.
+    */
+    constexpr TArray(SizeType count)
+    {
+        m_size     = count;
+        m_capacity = count;
+
+        m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
+
+        MemoryUtils::ConstructElements(GetData(), m_size);
+    }
+
+    /**
+     * @brief Initializer List constructor.
+     * @param list List to be copied to the new created array.
+    */
+    constexpr TArray(std::initializer_list<TargetItemType> list)
+    {
+        const SizeType size = static_cast<SizeType>(list.size());
+        if (size) {
+            m_size     = size;
+            m_capacity = size;
+
+            m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
+            MemoryUtils::CopyElements(GetData(), list.begin(), m_size);
+        }
+    }
+
+    /**
+     * @brief Construct an array from a memory range.
+     * @param begin Pointer to the memory's begin.
+     * @param end Pointer to the memory's end.
+    */
+    constexpr TArray(const TargetItemType* begin, const TargetItemType* end)
+    {
+        AE_ASSERT(begin && end);
+
+        const uint64 beginAddr = reinterpret_cast<uint64>(begin);
+        const uint64 endAddr   = reinterpret_cast<uint64>(end);
+        SizeType     size      = static_cast<SizeType>(endAddr - beginAddr) / sizeof(ItemType);
+
+        AE_ASSERT(size);
+
+        ConvertBoolToBytes(nullptr, begin, &m_size, size);
+
+        m_capacity = m_size;
+
+        m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
+        ConvertBoolToBytes(GetData(), begin, &m_size, size);
+    }
+
+    ~TArray() {}
 
     /**
      * @brief Returns the number of elements present on the array.
@@ -616,6 +705,28 @@ class TArray<bool, _AllocType>
      * @return True if the array is empty, false otherwise.
     */
     constexpr bool IsEmpty() const { return GetSize() == 0; }
+
+    /**
+     * @brief Returns a pointer to the array's first element.
+     * @return Pointer to the array's first element.
+    */
+    constexpr ItemType* GetData() { return reinterpret_cast<ItemType*>(m_allocator.GetData()); }
+
+    /**
+     * @brief Returns a pointer to the array's first element.
+     * @return Pointer to the array's first element.
+    */
+    constexpr const ItemType* GetData() const { return reinterpret_cast<const ItemType*>(m_allocator.GetData()); }
+
+  private:
+    void ConvertBoolToBytes(uint8* dst, const bool* src, SizeType* dstSize, SizeType srvSize)
+    {
+        AE_ASSERT(src);
+
+        *dstSize = (srvSize / 8 + 1) * 8;
+
+        if (dst) {}
+    }
 
   private:
     AllocatorType m_allocator;

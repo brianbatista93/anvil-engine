@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Containers/Array.h"
+#include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 #include <doctest/doctest.h>
 
@@ -221,11 +222,6 @@ TEST_CASE("[TArray]")
             CHECK_EQ(u[1].a, 29);
             CHECK_EQ(u[2].a, 10);
             CHECK_EQ(u[3].a, 100);
-
-            TArray<uint8> memory;
-
-            MemoryWriter ar(memory);
-            Serialize(ar, u, "testArray", "Test Array");
         }
 
         SUBCASE("List")
