@@ -19,10 +19,10 @@ using char8 = char;
 using char16 = char16_t;
 using char32 = char32_t;
 
-using tchar = char8;
+using tchar = char16;
 
 #ifdef ATEXT
     #undef FTEXT
 #endif // FTEXT
 
-#define ATEXT(t) u8##t
+#define ATEXT(t) u##t

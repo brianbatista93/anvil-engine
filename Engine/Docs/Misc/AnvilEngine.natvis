@@ -2,17 +2,10 @@
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
   <Type Name="String">
-    <DisplayString Condition="m_data.m_allocator.m_first==m_data.m_allocator.m_last">[empty]</DisplayString>
-    <DisplayString Condition="m_data.m_allocator.m_first!=m_data.m_allocator.m_last">{m_data.m_allocator.m_first,s8}</DisplayString>
-    <StringView Condition="m_data.m_allocator.m_last > 1">m_data.m_allocator.m_first,s8</StringView>
-    <Expand>
-      <Item Name="[size]" ExcludeView="simple">m_data.m_allocator.m_last - m_data.m_allocator.m_first</Item>
-      <Item Name="[capacity]" ExcludeView="simple">m_data.m_allocator.m_end - m_data.m_allocator.m_first</Item>
-      <ArrayItems>
-        <Size>m_data.m_allocator.m_last - m_data.m_allocator.m_first - 1</Size>
-        <ValuePointer>m_data.m_allocator.m_first, d</ValuePointer>
-      </ArrayItems>
-    </Expand>
+    <DisplayString Condition="m_data.m_size == 0">[Empty]</DisplayString>
+    <DisplayString Condition="m_data.m_capacity &lt; m_data.m_size">Invalid</DisplayString>
+    <DisplayString Condition="m_data.m_capacity &gt;= m_data.m_size">{m_data.m_allocator.m_data,su}</DisplayString>
+    <StringView Condition="m_data.m_capacity &gt;= m_data.m_size">m_data.m_allocator.m_data,su</StringView>
   </Type>
 
   <Type Name="TArray&lt;*,*&gt;">

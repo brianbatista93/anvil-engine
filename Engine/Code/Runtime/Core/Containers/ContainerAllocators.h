@@ -86,7 +86,7 @@ class THeapAllocator
             result = size_t(newItemsCount);
         }
 
-        return result;
+        return static_cast<SizeType>(result);
     }
 
     constexpr SizeType CalculateReserve(SizeType itemsCount) const { return itemsCount; }

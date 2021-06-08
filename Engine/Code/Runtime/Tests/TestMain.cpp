@@ -4,6 +4,6 @@
 
 #include "TestArray.h"
 // #include "TestArrayBool.h"
-// #include "TestString.h"
+#include "TestString.h"
 // #include "TestSet.h"
 // #include "TestMap.h"
