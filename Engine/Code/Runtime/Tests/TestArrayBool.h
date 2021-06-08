@@ -1,42 +1,15 @@
 #pragma once
 
 #include "Containers/Array.h"
-#include "Serialization/MemoryReader.h"
-#include "Serialization/MemoryWriter.h"
 #include <doctest/doctest.h>
-
-struct MyStruct
-{
-    int32  a = 29;
-    float  b = 0.7f;
-    double c = 19.93;
-
-    MyStruct() {}
-
-    MyStruct(const MyStruct& other)
-      : a(other.a)
-      , b(other.b)
-      , c(other.c)
-    {}
-
-    Archive& Serialize(Archive& ar, const char* name, const char* label)
-    {
-        // Value Name Label (Editor)
-        ar(a, "a", "A");
-        ar(b, "b", "B");
-        ar(c, "c", "C");
-
-        return ar;
-    }
-};
 
 TEST_SUITE_BEGIN("Containers");
 
-TEST_CASE("[TArray]")
+TEST_CASE("[TArray<bool>]")
 {
     SUBCASE("Default constructor")
     {
-        TArray<int32> u;
+        TArray<bool> u;
 
         CHECK_EQ(u.GetSize(), 0);
         CHECK_EQ(u.GetCapacity(), 0);
@@ -45,17 +18,17 @@ TEST_CASE("[TArray]")
 
     SUBCASE("Array pointer constructor")
     {
-        int32* v = new int32[5] {1, 2, 3, 4, 5};
+        bool* v = new bool[5] {true, true, false, true, false};
 
-        TArray<int32> u(v, v + 3);
+        TArray<bool> u(v, v + 3);
 
         CHECK_EQ(u.GetSize(), 3);
         CHECK_EQ(u.GetCapacity(), 3);
         CHECK_FALSE(u.IsEmpty());
 
-        CHECK_EQ(u[0], 1);
-        CHECK_EQ(u[1], 2);
-        CHECK_EQ(u[2], 3);
+       // CHECK_EQ(u[0], true);
+       // CHECK_EQ(u[1], true);
+       // CHECK_EQ(u[2], false);
 
         SafeDeleteArray(v);
     }
@@ -222,6 +195,11 @@ TEST_CASE("[TArray]")
             CHECK_EQ(u[1].a, 29);
             CHECK_EQ(u[2].a, 10);
             CHECK_EQ(u[3].a, 100);
+
+            TArray<uint8> memory;
+
+            MemoryWriter ar(memory);
+            Serialize(ar, u, "testArray", "Test Array");
         }
 
         SUBCASE("List")

@@ -44,21 +44,34 @@ class MemoryUtils
     */
     static void* AllocateAligned(uint64 size, uint64 align = 16u);
 
+    static void* ReallocateAligned(void* dst, uint64 oldSize, uint64 size, uint64 align = 16u)
+    {
+        void* ptr = AllocateAligned(size, align);
+
+        if (dst && oldSize) {
+            oldSize = oldSize > size ? size : oldSize;
+            memcpy(ptr, dst, oldSize);
+            FreeAligned(dst);
+        }
+
+        return ptr;
+    }
+
     /**
      * @brief Free an aligned memory block.
      * @param memoryBlock Pointer to memory block to be freed.
     */
     static void FreeAligned(void* memoryBlock);
 
-    template<class T>
-    static constexpr void CopyElements(T* dst, const T* src, uint64 size)
+    template<class ItemType, class SizeType>
+    static constexpr void CopyElements(ItemType* dst, const ItemType* src, SizeType size)
     {
         AE_ASSERT(dst);
         AE_ASSERT(src);
         AE_ASSERT(size);
 
-        if constexpr (std::is_trivially_constructible<T>::value) {
-            memcpy(dst, src, size * sizeof(T));
+        if constexpr (std::is_trivially_constructible<ItemType>::value) {
+            memcpy(dst, src, size * sizeof(ItemType));
         } else {
             for (uint64 i = 0; i < size; i++) {
                 dst[i] = src[i];
@@ -74,6 +87,40 @@ class MemoryUtils
         if constexpr (std::is_constructible<T>::value) {
             for (uint64 i = 0; i < count; i++) {
                 dst[i] = T(std::forward<Args>(args)...);
+            }
+        }
+    }
+
+    template<class ItemType, class SizeType>
+    static constexpr void DestroyItems(ItemType* item, SizeType count)
+    {
+        if constexpr (!std::is_trivially_destructible_v<ItemType>) {
+            while (count) {
+                class DestructItemsElementType = ItemType;
+
+                item->DestructItemsElementType::~DestructItemsElementType();
+                ++item;
+                --count;
+            }
+        }
+    }
+
+    template<class DstItemType, class SrcItemType, class SizeType>
+    static constexpr void MemoryMove(void* dst, const SrcItemType* src, SizeType count)
+    {
+        if constexpr (
+          std::is_same_v<
+            DstItemType,
+            SrcItemType> || (std::is_trivially_copy_constructible_v<DstItemType> && std::is_trivially_copy_constructible_v<SrcItemType> && std::is_trivially_destructible_v<SrcItemType>)) {
+            memmove(dst, src, count * sizeof(SrcItemType));
+        } else {
+            while (count) {
+                using RealocateConstructItems = SrcItemType;
+
+                new (dst) DstItemType(*src);
+                ++(DstItemType*&)dst;
+                (src++)->RealocateConstructItems::~RealocateConstructItems();
+                --count;
             }
         }
     }

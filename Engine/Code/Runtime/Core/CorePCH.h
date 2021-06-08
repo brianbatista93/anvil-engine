@@ -14,7 +14,7 @@
         #include <crtdbg.h>
 
         #define DEBUG_NEW new (_NORMAL_BLOCK, __FILE__, __LINE__)
-        #define anew DEBUG_NEW
+        #define anew      DEBUG_NEW
     #endif
 #endif
 
@@ -23,6 +23,15 @@ SafeDelete(void* ptr)
 {
     if (ptr) {
         delete ptr;
+        ptr = nullptr;
+    }
+}
+
+constexpr void
+SafeDeleteArray(void* ptr)
+{
+    if (ptr) {
+        delete[] ptr;
         ptr = nullptr;
     }
 }
