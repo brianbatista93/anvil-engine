@@ -15,6 +15,8 @@ struct MyStruct
       : a(other.a)
       , b(other.b)
     {}
+
+    friend void Serialize(Archive& ar, MyStruct& str, const char* name, const char* label) {}
 };
 
 TEST_SUITE_BEGIN("Containers");
@@ -134,7 +136,7 @@ TEST_CASE("[TArray]")
         CHECK_FALSE(u.IsEmpty());
     }
 
-    SUBCASE("Insertions")
+    SUBCASE("Emplace")
     {
         TArray<MyStruct> u;
 
@@ -178,6 +180,60 @@ TEST_CASE("[TArray]")
         CHECK_EQ(u.GetCapacity(), 22);
     }
 
+    SUBCASE("Insert")
+    {
+        SUBCASE("Items")
+        {
+            TArray<MyStruct> u;
+
+            MyStruct sa;
+            sa.a = 1;
+            sa.b = 2.0f;
+
+            MyStruct sb;
+            sb.a = 10;
+            sb.b = 20.0f;
+
+            MyStruct sc;
+            sc.a = 100;
+            sc.b = 200.0f;
+
+            MyStruct sd;
+            sd.a = 29;
+            sd.b = 19.93f;
+
+            u.Insert(0, sa);
+            u.Insert(1, sb);
+            u.Insert(2, sc);
+            u.Insert(1, std::move(sd));
+
+            CHECK_EQ(u[0].a, 1);
+            CHECK_EQ(u[1].a, 29);
+            CHECK_EQ(u[2].a, 10);
+            CHECK_EQ(u[3].a, 100);
+
+            Archive ar(Archive::Writing);
+            Serialize(ar, u);
+        }
+
+        SUBCASE("List")
+        {
+            TArray<int32> v = {1, 2, 3, 4};
+
+            v.Insert(2, {5, 6, 7, 8});
+
+            CHECK_EQ(v.GetSize(), 8);
+            CHECK_EQ(v[0], 1);
+            CHECK_EQ(v[1], 2);
+            CHECK_EQ(v[2], 5);
+            CHECK_EQ(v[3], 6);
+            CHECK_EQ(v[4], 7);
+            CHECK_EQ(v[5], 8);
+            CHECK_EQ(v[6], 3);
+            CHECK_EQ(v[7], 4);
+        }
+    }
+
     SUBCASE("Remove At")
     {
         TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
@@ -186,7 +242,7 @@ TEST_CASE("[TArray]")
         u.RemoveAt(6);
 
         CHECK_EQ(u.GetSize(), 7);
-        CHECK_EQ(u.GetCapacity(), 10);
+        CHECK_EQ(u.GetCapacity(), 7);
         CHECK_FALSE(u.IsEmpty());
 
         CHECK_EQ(u[0], 1);
@@ -204,7 +260,7 @@ TEST_CASE("[TArray]")
         u.RemoveAt(3, 3);
 
         CHECK_EQ(u.GetSize(), 7);
-        CHECK_EQ(u.GetCapacity(), 10);
+        CHECK_EQ(u.GetCapacity(), 7);
         CHECK_FALSE(u.IsEmpty());
 
         CHECK_EQ(u[0], 1);
@@ -219,15 +275,31 @@ TEST_CASE("[TArray]")
     SUBCASE("Resize")
     {
         TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-        u.AddSlots(5);
+        u.Resize(5);
 
         CHECK_EQ(u.GetSize(), 5);
         CHECK_EQ(u.GetCapacity(), 10);
 
-        u.AddSlots(15);
+        u.Resize(15);
 
         CHECK_EQ(u.GetSize(), 15);
-        CHECK_EQ(u.GetCapacity(), 15);
+        CHECK_EQ(u.GetCapacity(), 36);
+    }
+
+    SUBCASE("Contains, Find and Pop")
+    {
+        TArray<int32> u = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+        CHECK(u.Contains(6));
+        CHECK_FALSE(u.Contains(29));
+
+        CHECK_EQ(u.Find(4), 3);
+        CHECK_EQ(u.Find(29), INVALID_INDEX);
+
+        int32 last = u.Pop();
+
+        CHECK_EQ(u.GetSize(), 9);
+        CHECK_EQ(last, 10);
     }
 }
 

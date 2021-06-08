@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ContainerAllocators.h"
+#include "Serialization/Archive.h"
 
 /**
  * @brief Arrays of elements of contiguous allocated memory.
@@ -32,7 +33,7 @@ class TArray
         m_size     = other.m_size;
         m_capacity = other.m_capacity;
 
-        m_allocator.Reallocate(other.m_size, sizeof(ItemType));
+        m_allocator.Reallocate(other.m_size, 0, sizeof(ItemType));
         MemoryUtils::CopyElements(GetData(), other.GetData(), other.GetSize());
     }
 
@@ -62,7 +63,7 @@ class TArray
         m_size     = count;
         m_capacity = count;
 
-        m_allocator.Reallocate(m_size, sizeof(ItemType));
+        m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
 
         MemoryUtils::ConstructElements(GetData(), m_size);
     }
@@ -78,7 +79,7 @@ class TArray
             m_size     = size;
             m_capacity = size;
 
-            m_allocator.Reallocate(m_size, sizeof(ItemType));
+            m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
             MemoryUtils::CopyElements(GetData(), list.begin(), m_size);
         }
     }
@@ -101,7 +102,7 @@ class TArray
         m_size     = size;
         m_capacity = size;
 
-        m_allocator.Reallocate(m_size, sizeof(ItemType));
+        m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
         MemoryUtils::CopyElements(GetData(), begin, m_size);
     }
 
@@ -115,12 +116,14 @@ class TArray
     constexpr TArray& operator=(const TArray& other)
     {
         if (this != std::addressof(other)) {
-            MemoryUtils::DestroyElements(GetData(), m_size);
+            MemoryUtils::DestroyItems(GetData(), m_size);
+
+            const SizeType oldSize = m_size;
 
             m_size     = other.m_size;
             m_capacity = other.m_capacity;
 
-            m_allocator.Reallocate(m_size, sizeof(ItemType));
+            m_allocator.Reallocate(m_size, oldSize, sizeof(ItemType));
 
             MemoryUtils::CopyElements(GetData(), other.GetData(), m_size);
         }
@@ -136,7 +139,7 @@ class TArray
     constexpr TArray& operator=(TArray&& other) noexcept
     {
         if (this != std::addressof(other)) {
-            MemoryUtils::DestroyElements(GetData(), m_size);
+            MemoryUtils::DestroyItems(GetData(), m_size);
 
             m_size     = other.m_size;
             m_capacity = other.m_capacity;
@@ -283,40 +286,195 @@ class TArray
     }
 
     /**
+     * @brief Inserts an item at given index.
+     * Inserts using Copy semantics.
+     * @param index Index where to insert the item.
+     * @param item Item to be inserted.
+     * @return Index at where the item was inserted.
+    */
+    SizeType Insert(SizeType index, const ItemType& item)
+    {
+        CheckAddress(&item);
+
+        InsertImpl(index, 1);
+        new (GetData() + index) ItemType(item);
+        return index;
+    }
+
+    /**
+     * @brief Inserts an item at given index.
+     * Inserts using Move semantics.
+     * @param index Index where to insert the item.
+     * @param item Item to be inserted.
+     * @return Index at where the item was inserted.
+    */
+    SizeType Insert(SizeType index, ItemType&& item)
+    {
+        CheckAddress(&item);
+
+        InsertImpl(index, 1);
+        new (GetData() + index) ItemType(std::move(item));
+        return index;
+    }
+
+    /**
+     * @brief Inserts a list at given index.
+     * Inserts using Move semantics.
+     * @param index Index where to insert the item.
+     * @param list List to be inserted.
+     * @return Index at where the list was inserted.
+    */
+    SizeType Insert(const SizeType index, std::initializer_list<ItemType> list)
+    {
+        SizeType newCount = static_cast<SizeType>(list.size());
+
+        InsertImpl(index, newCount);
+        MemoryUtils::CopyElements(GetData() + index, list.begin(), newCount);
+
+        return index;
+    }
+
+    /**
      * @brief Resizes the container to contain count elements.
      * @param count New size.
     */
-    constexpr void Reserve(uint32 newCapacity)
+    constexpr void Reserve(SizeType newCapacity)
     {
         AE_ASSERT(newCapacity >= 0);
         if (newCapacity) {
             newCapacity = m_allocator.CalculateReserve(newCapacity);
         }
         if (newCapacity != m_capacity) {
-            m_capacity = newCapacity;
-            m_allocator.Reallocate(newCapacity, sizeof(ItemType));
+            const SizeType oldCapacity = m_capacity;
+            m_capacity                 = newCapacity;
+            m_allocator.Reallocate(newCapacity, oldCapacity, sizeof(ItemType));
         }
+    }
+
+    /**
+     * @brief Resizes the array to a new size.
+     * @param newSize New size.
+    */
+    constexpr void Resize(SizeType newSize)
+    {
+        if (newSize < m_size) {
+            const SizeType index = m_size - newSize;
+            const SizeType count = index;
+            RemoveAt(index, count, false);
+        } else if (newSize > m_size) {
+            m_size = newSize;
+            ResizeImpl();
+        }
+    }
+
+    constexpr ItemType Pop(bool shrink = true)
+    {
+        AE_ASSERT(!IsEmpty());
+        ItemType result = std::move(GetData()[m_size - 1]);
+        RemoveAt(m_size - 1, 1, shrink);
+        return result;
+    }
+
+    /**
+     * @brief Clears array and destroy its items.
+    */
+    constexpr void Clear(bool shrink = false)
+    {
+        MemoryUtils::DestroyItems(GetData(), m_size);
+        m_size = 0;
+        if (shrink) {
+            ShrinkToFit();
+        }
+    }
+
+    /**
+     * @brief Checks if item is contained by the array.
+     * @param item Item to be looked for.
+     * @return True if item is inside array, else otherwise.
+    */
+    template<class ComparisonType>
+    bool Contains(const ComparisonType& item) const
+    {
+        for (const ItemType* __restrict data = GetData(), *__restrict dataEnd = data + m_size; data != dataEnd; ++data) {
+            if (*data == item) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    SizeType Find(const ItemType& item) const
+    {
+        const ItemType* __restrict start = GetData();
+        for (const ItemType* __restrict data = start, *__restrict dataEnd = data + m_size; data != dataEnd; ++data) {
+            if (*data == item) {
+                return static_cast<SizeType>(data - start);
+            }
+        }
+        return INVALID_INDEX;
     }
 
     /**
      * @brief Requests the removal of unused capacity.
     */
-    constexpr void ShrinkToFit() {}
+    constexpr void ShrinkToFit()
+    {
+        if (m_size != m_capacity) {
+            Reserve(m_size);
+        }
+    }
 
     /**
      * @brief Removes a count of elements starting at an index.
      * @param index Starting index of the remotion.
      * @param count Number of elements to remove.
     */
-    constexpr void RemoveAt(SizeType index, SizeType count = 1)
+    constexpr void RemoveAt(SizeType index, SizeType count = 1, bool shrink = true)
     {
-        AE_ASSERT(count > 0);
-        AE_ASSERT((index + count) < GetSize());
-        AE_ASSERT(index < GetSize());
-
-        for (SizeType i = index; i < GetSize(); i++) {
-            GetData()[i] = std::move(GetData()[i + count]);
+        RemoveAtImpl(index, count);
+        if (shrink) {
+            ShrinkToFit();
         }
+    }
+
+    friend void Serialize(Archive& ar, TArray& arr)
+    {
+        SizeType arraySize = 0;
+        if (ar.IsWriting()) {
+            arraySize = arr.m_size;
+        }
+
+        ar(arraySize, "size", "Size");
+
+        if (arraySize == 0) {
+            if (ar.IsReading()) {
+                arr.Clear(true);
+            }
+            return;
+        }
+
+        if (sizeof(ItemType) == 0 || TIsFundamental<ItemType>::Value) {
+            if ((arr.m_size || arr.m_capacity) && ar.IsReading()) {
+                arr.Resize(arr.m_size);
+            }
+
+            ar(Archive::RangedBytes(arr.GetData(), arr.GetSize()), "data", "Data");
+        } else if (ar.IsReading()) {
+            arr.Clear(true);
+
+            for (SizeType i = 0; i < arraySize; i++) {
+                ItemType item = *::new (arr) ItemType;
+                ar(item, "", "");
+            }
+        } else {
+            arr.m_size = arraySize;
+
+            for (SizeType i = 0; i < arr.m_size; i++) {
+                ar(arr[i], "", "");
+            }
+        }
+
+        AE_ASSERT(arraySize >= 0);
     }
 
   private:
@@ -328,8 +486,42 @@ class TArray
 
     constexpr void ResizeImpl()
     {
-        m_capacity = m_allocator.CalculateGrowth(m_size, m_capacity);
-        m_allocator.Reallocate(m_capacity, sizeof(ItemType));
+        const SizeType oldCapacity = m_capacity;
+        m_capacity                 = m_allocator.CalculateGrowth(m_size, m_capacity);
+        m_allocator.Reallocate(m_capacity, oldCapacity, sizeof(ItemType));
+    }
+
+    constexpr void RemoveAtImpl(SizeType index, SizeType count)
+    {
+        if (count) {
+            AE_ASSERT((count >= 0) & (index >= 0) & (index + count <= m_size));
+
+            MemoryUtils::DestroyItems(GetData() + index, count);
+
+            SizeType moveCount = m_size - index - count;
+            if (moveCount) {
+                memmove((uint8*)m_allocator.GetData() + (index) * sizeof(ItemType),
+                        (uint8*)m_allocator.GetData() + (index + count) * sizeof(ItemType),
+                        moveCount * sizeof(ItemType));
+            }
+            m_size -= count;
+        }
+    }
+
+    template<class OtherSizeType>
+    void InsertImpl(SizeType index, OtherSizeType count)
+    {
+        AE_ASSERT((count >= 0) & (index >= 0) & (index <= m_size));
+
+        SizeType newCount = count;
+        AE_ASSERT(static_cast<OtherSizeType>(newCount) == count);
+
+        const SizeType oldCount = m_size;
+        if ((m_size += count) > m_capacity) {
+            ResizeImpl();
+        }
+        ItemType* data = GetData() + index;
+        MemoryUtils::MemoryMove<ItemType, ItemType, SizeType>(data + count, data, oldCount - index);
     }
 
   private:
@@ -378,4 +570,13 @@ template<class ItemType, class AllocatorType>
 operator>=(const TArray<ItemType, AllocatorType>& lhs, const TArray<ItemType, AllocatorType>& rhs)
 {
     return !(lhs < rhs);
+}
+
+template<typename T, typename AllocatorType>
+void*
+operator new(size_t size, TArray<T, AllocatorType>& arr)
+{
+    AE_ASSERT(size == sizeof(T));
+    const auto index = arr.AddSlots(1);
+    return &arr[index];
 }

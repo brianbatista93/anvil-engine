@@ -128,7 +128,7 @@ class TDynamicAllocator
 
     constexpr void Destroy()
     {
-        MemoryUtils::DestroyElements(m_first, GetSize());
+        MemoryUtils::DestroyItems(m_first, GetSize());
         if (GetCapacity()) {
             m_end  = nullptr;
             m_last = nullptr;

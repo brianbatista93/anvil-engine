@@ -44,13 +44,17 @@ class MemoryUtils
     */
     static void* AllocateAligned(uint64 size, uint64 align = 16u);
 
-    static void* ReallocateAligned(void* dst, uint64 size, uint64 align = 16u)
+    static void* ReallocateAligned(void* dst, uint64 oldSize, uint64 size, uint64 align = 16u)
     {
-        if (dst) {
+        void* ptr = AllocateAligned(size, align);
+
+        if (dst && oldSize) {
+            oldSize = oldSize > size ? size : oldSize;
+            memcpy(ptr, dst, oldSize);
             FreeAligned(dst);
         }
 
-        return AllocateAligned(size, align);
+        return ptr;
     }
 
     /**
@@ -59,15 +63,15 @@ class MemoryUtils
     */
     static void FreeAligned(void* memoryBlock);
 
-    template<class T>
-    static constexpr void CopyElements(T* dst, const T* src, uint64 size)
+    template<class ItemType, class SizeType>
+    static constexpr void CopyElements(ItemType* dst, const ItemType* src, SizeType size)
     {
         AE_ASSERT(dst);
         AE_ASSERT(src);
         AE_ASSERT(size);
 
-        if constexpr (std::is_trivially_constructible<T>::value) {
-            memcpy(dst, src, size * sizeof(T));
+        if constexpr (std::is_trivially_constructible<ItemType>::value) {
+            memcpy(dst, src, size * sizeof(ItemType));
         } else {
             for (uint64 i = 0; i < size; i++) {
                 dst[i] = src[i];
@@ -88,7 +92,7 @@ class MemoryUtils
     }
 
     template<class ItemType, class SizeType>
-    static constexpr void DestroyElements(ItemType* item, SizeType count)
+    static constexpr void DestroyItems(ItemType* item, SizeType count)
     {
         if constexpr (!std::is_trivially_destructible_v<ItemType>) {
             while (count) {

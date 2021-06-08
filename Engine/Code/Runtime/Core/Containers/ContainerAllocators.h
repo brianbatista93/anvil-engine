@@ -2,6 +2,11 @@
 
 #include "Memory/MemoryUtils.h"
 
+enum
+{
+    INVALID_INDEX = -1
+};
+
 struct AllocatorItem
 {};
 
@@ -61,10 +66,11 @@ class THeapAllocator
      * @param count Number of items.
      * @param itemSizeInBytes Size in bytes of a single item.
     */
-    void Reallocate(SizeType count, size_t itemSizeInBytes)
+    void Reallocate(SizeType count, SizeType oldCount, size_t itemSizeInBytes)
     {
         if (m_data || count) {
-            m_data = reinterpret_cast<AllocatorItem*>(MemoryUtils::ReallocateAligned(m_data, count * itemSizeInBytes));
+            m_data = reinterpret_cast<AllocatorItem*>(
+              MemoryUtils::ReallocateAligned(m_data, oldCount * itemSizeInBytes, count * itemSizeInBytes));
         }
     }
 
