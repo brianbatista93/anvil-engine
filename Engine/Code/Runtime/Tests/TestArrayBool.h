@@ -1,41 +1,15 @@
 #pragma once
 
 #include "Containers/Array.h"
-#include "Serialization/MemoryWriter.h"
 #include <doctest/doctest.h>
-
-struct MyStruct
-{
-    int32  a = 29;
-    float  b = 0.7f;
-    double c = 19.93;
-
-    MyStruct() {}
-
-    MyStruct(const MyStruct& other)
-      : a(other.a)
-      , b(other.b)
-      , c(other.c)
-    {}
-
-    Archive& Serialize(Archive& ar, const char* name, const char* label)
-    {
-        // Value Name Label (Editor)
-        ar(a, "a", "A");
-        ar(b, "b", "B");
-        ar(c, "c", "C");
-
-        return ar;
-    }
-};
 
 TEST_SUITE_BEGIN("Containers");
 
-TEST_CASE("[TArray]")
+TEST_CASE("[TArray<bool>]")
 {
     SUBCASE("Default constructor")
     {
-        TArray<int32> u;
+        TArray<bool> u;
 
         CHECK_EQ(u.GetSize(), 0);
         CHECK_EQ(u.GetCapacity(), 0);

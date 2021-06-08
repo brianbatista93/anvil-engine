@@ -437,7 +437,7 @@ class TArray
         }
     }
 
-    friend void Serialize(Archive& ar, TArray& arr)
+    friend void Serialize(Archive& ar, TArray& arr, const char* name, const char* label)
     {
         SizeType arraySize = 0;
         if (ar.IsWriting()) {
@@ -580,3 +580,45 @@ operator new(size_t size, TArray<T, AllocatorType>& arr)
     const auto index = arr.AddSlots(1);
     return &arr[index];
 }
+
+template<class _AllocType>
+class TArray<bool, _AllocType>
+{
+  public:
+    using ItemType      = bool;
+    using AllocatorType = _AllocType;
+    using SizeType      = typename _AllocType::SizeType;
+
+    /**
+     * @brief Default constructor.
+    */
+    constexpr explicit TArray()
+      : m_size(0)
+      , m_capacity(0)
+    {}
+
+    /**
+     * @brief Returns the number of elements present on the array.
+     * @return Number of elements of the array.
+    */
+    constexpr SizeType GetSize() const { return m_size; }
+
+    constexpr size_t GetSizeInBytes() const { return (size_t)GetCapacity() * sizeof(ItemType); }
+
+    /**
+     * @brief Returns the capacity of the array.
+     * @return The capacity (in bytes) of the array.
+    */
+    constexpr SizeType GetCapacity() const { return m_capacity; }
+
+    /**
+     * @brief Checks if the array is empty.
+     * @return True if the array is empty, false otherwise.
+    */
+    constexpr bool IsEmpty() const { return GetSize() == 0; }
+
+  private:
+    AllocatorType m_allocator;
+    SizeType      m_size;
+    SizeType      m_capacity;
+};
