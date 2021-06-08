@@ -62,14 +62,12 @@ class TCharacterConverter<char, tchar, _SizeType>
 
     ToType* Convert(ToType* dst, const FromType* src, SizeType srcLength) const
     {
+        while (*src) {
+            if (*src < 0x80) {
+                *dst = (ToType)(*src);
 
-        for (SizeType i = 0; i < srcLength; i++) {
-            FromType srcChr = src[i];
-            if ((srcChr >= 0x00 && srcChr <= 0x7F) && (FromType)(ToType)srcChr == srcChr) {
-                dst[i] = static_cast<ToType>(srcChr);
-            } else {
-                dst[i] = src[i] << 8;
-                dst[i] = src[++i];
+                dst++;
+                src++;
             }
         }
 
