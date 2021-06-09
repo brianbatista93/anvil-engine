@@ -19,9 +19,7 @@ struct TEnableIf<false, Result>
 // clang-format off
 template<class T>    struct TIsChar             { enum { Value = false }; };
 template<>           struct TIsChar<char>       { enum { Value = true }; };
-#ifdef __cpp_char8_t
-    template<>           struct TIsChar<char8>      { enum { Value = true }; };
-#endif
+template<>           struct TIsChar<char8>      { enum { Value = true }; };
 template<>           struct TIsChar<char16>     { enum { Value = true }; };
 template<>           struct TIsChar<char32>     { enum { Value = true }; };
 template<>           struct TIsChar<wchar_t>    { enum { Value = true }; };

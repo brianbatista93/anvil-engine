@@ -18,23 +18,21 @@
     #endif
 #endif
 
-constexpr void
-SafeDelete(void* ptr)
-{
-    if (ptr) {
-        delete ptr;
-        ptr = nullptr;
+#define SAFE_DELETE(ptr)                                                                                                                   \
+    {                                                                                                                                      \
+        if (ptr) {                                                                                                                         \
+            delete ptr;                                                                                                                    \
+            ptr = nullptr;                                                                                                                 \
+        }                                                                                                                                  \
     }
-}
 
-constexpr void
-SafeDeleteArray(void* ptr)
-{
-    if (ptr) {
-        delete[] ptr;
-        ptr = nullptr;
+#define SAFE_DELETE_ARRAY(ptr)                                                                                                             \
+    {                                                                                                                                      \
+        if (ptr) {                                                                                                                         \
+            delete[] ptr;                                                                                                                  \
+            ptr = nullptr;                                                                                                                 \
+        }                                                                                                                                  \
     }
-}
 
 #ifdef AE_DEBUG
     #define AE_ASSERT(x) assert(x)

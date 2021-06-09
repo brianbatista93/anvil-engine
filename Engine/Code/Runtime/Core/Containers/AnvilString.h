@@ -25,9 +25,11 @@ class String
     {
         if (str && *str) {
             TCharacterConverter<CharType, tchar, SizeType> conv;
-            SizeType                             length = conv.GetConvertedLength(str) + 1;
-            m_data.AddSlots(length);
-            conv.Convert(m_data.GetData(), str, length);
+            SizeType                                       srcLength = conv.GetConvertedLength(str) + 1;
+            SizeType                                       dstLength;
+            conv.Convert(nullptr, &dstLength, str, srcLength);
+            m_data.AddSlots(dstLength);
+            conv.Convert(m_data.GetData(), &dstLength, str, srcLength);
         }
     }
 

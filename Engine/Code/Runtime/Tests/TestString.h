@@ -18,23 +18,33 @@ TEST_CASE("[String] Constructors and Assignments")
 
     SUBCASE("Character pointer constructor tchar")
     {
-        String text = ATEXT("Olá, meu nome é Brian, eu sou de Uberlândia e gosto de maçãs.");
+        String text = ATEXT("我喜欢咖啡");
 
-        CHECK_EQ(text.GetSize(), 62);
+        CHECK_EQ(text.GetSize(), 6);
+        CHECK_EQ(text.GetLength(), 5);
     }
 
     SUBCASE("Character pointer constructor char")
     {
-        String text = "Olá, meu nome é Brian, eu sou de Uberlândia e gosto de maçãs.";
+        String text = "I love coffee";
+        CHECK_EQ(text.GetSize(), 14);
+        CHECK_EQ(text.GetLength(), 13);
+    }
 
-        CHECK_EQ(text.GetSize(), 62);
+    SUBCASE("Character pointer constructor char8")
+    {
+        String text = (const char8*)u8"我喜欢咖啡";
+
+        CHECK_EQ(text.GetSize(), 6);
+        CHECK_EQ(text.GetLength(), 5);
     }
 
     SUBCASE("Character pointer constructor wchar_t")
     {
-        String text = L"Olá, meu nome é Brian, eu sou de Uberlândia e gosto de maçãs.";
+        String text = L"我喜欢咖啡";
 
-        CHECK_EQ(text.GetSize(), 62);
+        CHECK_EQ(text.GetSize(), 6);
+        CHECK_EQ(text.GetLength(), 5);
     }
 }
 

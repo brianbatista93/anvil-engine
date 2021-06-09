@@ -13,7 +13,7 @@ using int64 = signed long long;
 #ifdef __cpp_char8_t
 using char8 = char8_t;
 #else
-using char8 = char;
+using char8 = unsigned char;
 #endif
 
 using char16 = char16_t;

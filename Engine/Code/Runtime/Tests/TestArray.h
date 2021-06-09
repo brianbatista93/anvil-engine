@@ -57,7 +57,7 @@ TEST_CASE("[TArray]")
         CHECK_EQ(u[1], 2);
         CHECK_EQ(u[2], 3);
 
-        SafeDeleteArray(v);
+        SAFE_DELETE_ARRAY(v);
     }
 
     SUBCASE("Copy and List constructor")
