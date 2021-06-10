@@ -1,5 +1,15 @@
+#pragma once
+
 #include "Array.h"
 #include "CharacterConverter.h"
+
+class String;
+
+tchar*
+GetData(String&);
+
+const tchar*
+GetData(const String&);
 
 class String
 {
@@ -51,21 +61,25 @@ class String
         }
     }
 
-    constexpr String& operator=(const tchar* other)
-    {
-        if (m_data.GetData() != other) {
-            TCharacterConverter<tchar, tchar, SizeType> conv;
-            SizeType                                    length = (other && *other) ? conv.GetConvertedLength(other) + 1 : 0;
-            m_data.Clear(true);
-            m_data.AddSlots(length);
+    /**
+     * @brief Copy assingment from tchar
+     * @param other Tchar pointer
+    */
+    //constexpr String& operator=(const tchar* other)
+    //{
+    //    if (m_data.GetData() != other) {
+    //        TCharacterConverter<tchar, tchar, SizeType> conv;
+    //        SizeType                                    length = (other && *other) ? (conv.GetConvertedLength(other) + 1) : 0;
+    //        m_data.Clear(true);
+    //        m_data.AddSlots(length);
 
-            if (length) {
-                memcpy(m_data.GetData(), other, length * sizeof(tchar));
-            }
-        }
+    //        if (length) {
+    //            memcpy(m_data.GetData(), other, length * sizeof(tchar));
+    //        }
+    //    }
 
-        return *this;
-    }
+    //    return *this;
+    //}
 
     /**
      * @brief Returns the size in bytes that this string is occuping on memory.
@@ -73,6 +87,10 @@ class String
      * @return The size in bytes.
     */
     constexpr size_t GetSizeInBytes() const { return m_data.GetSizeInBytes(); }
+
+    [[nodiscard]] constexpr ArrayType& GetArray() { return m_data; }
+
+    [[nodiscard]] constexpr const ArrayType& GetArray() const { return m_data; }
 
     /**
      * @brief Returns the number of characters on the string including the null-terminator.
@@ -92,7 +110,7 @@ class String
      * It does not mean the string has not allocated memory.
      * @return True if empty, false otherwise.
     */
-    constexpr bool IsEmpty() const { return GetSize() == 0; }
+    constexpr bool IsEmpty() const { return GetSize() <= 1; }
 
     /**
      * @brief Returns the string as const tchar*.
@@ -105,14 +123,14 @@ class String
      * @param index Index of the character
      * @return The character at an index.
     */
-    constexpr ItemType& operator[](uint32 index) { return m_data.GetData()[index]; }
+    constexpr ItemType& operator[](SizeType index) { return m_data.GetData()[index]; }
 
     /**
      * @brief Gets one character at an index.
      * @param index Index of the character
      * @return The character at an index.
     */
-    constexpr const ItemType& operator[](uint32 index) const { return m_data.GetData()[index]; }
+    constexpr const ItemType& operator[](SizeType index) const { return m_data.GetData()[index]; }
 
     /**
      * @brief C++ iterator begin.
@@ -152,6 +170,57 @@ class String
         return end;
     }
 
+    void AppendCharacters(const char* chrs, SizeType count);
+    void AppendCharacters(const char16* chrs, SizeType count);
+    void AppendCharacters(const wchar_t* chrs, SizeType count);
+
+    constexpr String& AppendCharacter(tchar chr)
+    {
+        if (chr) {
+            SizeType index = (m_data.GetSize() > 0) ? m_data.GetSize() - 1 : 0;
+            SizeType count = (m_data.GetSize() > 0) ? 1 : 2;
+
+            m_data.AddSlots(count);
+            m_data[index]     = chr;
+            m_data[index + 1] = 0;
+        }
+
+        return *this;
+    }
+
+    template<class CharType>
+    constexpr String& Append(const CharType* chrs, SizeType count)
+    {
+        AppendCharacters(chrs, count);
+        return *this;
+    }
+
+    template<class CharType>
+    constexpr String& Append(CharType* chrs)
+    {
+        TCharacterConverter<CharType, ItemType, SizeType> conv;
+        const SizeType                                    count = conv.GetConvertedLength(chrs);
+        AppendCharacters(chrs, count);
+        return *this;
+    }
+
+    template<class CharType>
+    constexpr String& Append(CharType&& chrs)
+    {
+        AppendCharacters(GetData(chrs), ::GetSize(chrs));
+        return *this;
+    }
+
+    constexpr String& operator+=(char chr) { return AppendCharacter(static_cast<tchar>(chr)); }
+    constexpr String& operator+=(char16 chr) { return AppendCharacter(static_cast<tchar>(chr)); }
+    constexpr String& operator+=(wchar_t chr) { return AppendCharacter(static_cast<tchar>(chr)); }
+
+    template<class StringType>
+    constexpr String& operator+=(StringType&& str)
+    {
+        return Append(std::forward<StringType>(str));
+    }
+
     /**
      * @brief Checks if a string rhs is equals to this one.
      * @param rhs The string to be compared with.
@@ -174,3 +243,21 @@ class String
   private:
     ArrayType m_data;
 };
+
+inline tchar*
+GetData(String& str)
+{
+    return str.GetArray().GetData();
+}
+
+inline const tchar*
+GetData(const String& str)
+{
+    return str.GetArray().GetData();
+}
+
+inline uint32
+GetSize(const String& str)
+{
+    return str.GetLength();
+}

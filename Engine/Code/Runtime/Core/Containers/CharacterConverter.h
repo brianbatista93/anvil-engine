@@ -19,19 +19,17 @@ template<class Type, class _SizeType>
 class TCharacterConverter<Type, Type, _SizeType>
 {
   public:
-    using FromType = Type;
-    using ToType   = Type;
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<ToType>::length(src)); }
+    SizeType GetConvertedLength(const Type* src) const { return static_cast<SizeType>(std::char_traits<Type>::length(src)); }
 
-    ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
+    Type* Convert(Type* dst, SizeType* dstLength, const Type* src, SizeType srcLength) const
     {
         if (dst == nullptr) {
             *dstLength = srcLength;
             return nullptr;
         } else {
-            memcpy(dst, src, srcLength * sizeof(ToType));
+            memcpy(dst, src, srcLength * sizeof(Type));
             return dst;
         }
     }

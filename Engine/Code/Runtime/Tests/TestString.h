@@ -52,6 +52,22 @@ TEST_CASE("[String] Constructors and Assignments")
     }
 }
 
+TEST_CASE("[String] Append operations")
+{
+    String result;
+    String english = ATEXT("I love coffee");
+    String chinese = ATEXT("我喜欢咖啡");
+
+    result = english;
+    result += ATEXT('-');
+    result += chinese;
+    result += String(ATEXT(" 😍☕😍"));
+
+    CHECK_EQ(result.GetSize(), 26);
+    CHECK_EQ(result.GetLength(), 25);
+    CHECK_EQ(result, ATEXT("I love coffee-我喜欢咖啡 😍☕😍"));
+}
+
 //TEST_CASE("[String] Formatter")
 //{
 //    String formatted
