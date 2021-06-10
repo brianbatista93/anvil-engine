@@ -26,7 +26,7 @@ class String
         if (str && *str) {
             TCharacterConverter<CharType, tchar, SizeType> conv;
             SizeType                                       srcLength = conv.GetConvertedLength(str) + 1;
-            SizeType                                       dstLength;
+            SizeType                                       dstLength = 0;
             conv.Convert(nullptr, &dstLength, str, srcLength);
             m_data.AddSlots(dstLength);
             conv.Convert(m_data.GetData(), &dstLength, str, srcLength);
@@ -59,6 +59,83 @@ class String
      * @return True if empty, false otherwise.
     */
     constexpr bool IsEmpty() const { return GetSize() == 0; }
+
+    /**
+     * @brief Returns the string as const tchar*.
+     * @return Array of tchars.
+    */
+    constexpr const ItemType* operator*() const { return m_data.GetData(); }
+
+    /**
+     * @brief Gets one character at an index.
+     * @param index Index of the character
+     * @return The character at an index.
+    */
+    constexpr ItemType& operator[](uint32 index) { return m_data.GetData()[index]; }
+
+    /**
+     * @brief Gets one character at an index.
+     * @param index Index of the character
+     * @return The character at an index.
+    */
+    constexpr const ItemType& operator[](uint32 index) const { return m_data.GetData()[index]; }
+
+    /**
+     * @brief C++ iterator begin.
+     * @return A pointer to the begin.
+    */
+    constexpr ItemType* begin() noexcept { return m_data.begin(); }
+
+    /**
+     * @brief C++ iterator begin.
+     * @return A pointer to the begin.
+    */
+    constexpr const ItemType* begin() const noexcept { return m_data.begin(); }
+
+    /**
+     * @brief C++ iterator end.
+     * @return A pointer to the end.
+    */
+    constexpr ItemType* end() noexcept
+    {
+        auto end = m_data.end();
+        if (GetSize()) {
+            --end;
+        }
+        return end;
+    }
+
+    /**
+     * @brief C++ iterator end.
+     * @return A pointer to the end.
+    */
+    constexpr const ItemType* end() const noexcept
+    {
+        auto end = m_data.end();
+        if (GetSize()) {
+            --end;
+        }
+        return end;
+    }
+
+    /**
+     * @brief Checks if a string rhs is equals to this one.
+     * @param rhs The string to be compared with.
+     * @return True if both strings are equal.
+    */
+    constexpr bool Equals(const String& rhs) const { return m_data == rhs.m_data; }
+
+    [[nodiscard]] friend bool operator==(const String& lhs, const String& rhs) { return lhs.Equals(rhs); }
+
+    [[nodiscard]] friend bool operator!=(const String& lhs, const String& rhs) { return !(lhs == rhs); }
+
+    [[nodiscard]] friend bool operator<(const String& lhs, const String& rhs) { return lhs.m_data < rhs.m_data; }
+
+    [[nodiscard]] friend bool operator<=(const String& lhs, const String& rhs) { return lhs.m_data <= rhs.m_data; }
+
+    [[nodiscard]] friend bool operator>(const String& lhs, const String& rhs) { return lhs.m_data > rhs.m_data; }
+
+    [[nodiscard]] friend bool operator>=(const String& lhs, const String& rhs) { return lhs.m_data >= rhs.m_data; }
 
   private:
     ArrayType m_data;

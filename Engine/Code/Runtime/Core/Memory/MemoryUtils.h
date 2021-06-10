@@ -96,7 +96,7 @@ class MemoryUtils
     {
         if constexpr (!std::is_trivially_destructible_v<ItemType>) {
             while (count) {
-                class DestructItemsElementType = ItemType;
+                using DestructItemsElementType = ItemType;
 
                 item->DestructItemsElementType::~DestructItemsElementType();
                 ++item;

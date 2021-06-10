@@ -22,6 +22,7 @@ TEST_CASE("[String] Constructors and Assignments")
 
         CHECK_EQ(text.GetSize(), 6);
         CHECK_EQ(text.GetLength(), 5);
+        CHECK_EQ(text, ATEXT("我喜欢咖啡"));
     }
 
     SUBCASE("Character pointer constructor char")
@@ -29,6 +30,7 @@ TEST_CASE("[String] Constructors and Assignments")
         String text = "I love coffee";
         CHECK_EQ(text.GetSize(), 14);
         CHECK_EQ(text.GetLength(), 13);
+        CHECK_EQ(text, ATEXT("I love coffee"));
     }
 
     SUBCASE("Character pointer constructor char8")
@@ -37,6 +39,7 @@ TEST_CASE("[String] Constructors and Assignments")
 
         CHECK_EQ(text.GetSize(), 6);
         CHECK_EQ(text.GetLength(), 5);
+        CHECK_EQ(text, ATEXT("我喜欢咖啡"));
     }
 
     SUBCASE("Character pointer constructor wchar_t")
@@ -45,6 +48,7 @@ TEST_CASE("[String] Constructors and Assignments")
 
         CHECK_EQ(text.GetSize(), 6);
         CHECK_EQ(text.GetLength(), 5);
+        CHECK_EQ(text, ATEXT("我喜欢咖啡"));
     }
 }
 
