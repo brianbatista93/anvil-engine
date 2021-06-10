@@ -38,31 +38,6 @@ class TCharacterConverter<Type, Type, _SizeType>
 };
 
 template<class _SizeType>
-class TCharacterConverter<wchar_t, tchar, _SizeType>
-{
-  public:
-    using FromType = wchar_t;
-    using ToType   = tchar;
-    using SizeType = _SizeType;
-
-    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
-
-    ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
-    {
-        if constexpr (sizeof(FromType) == sizeof(ToType)) {
-            if (dst == nullptr) {
-                *dstLength = srcLength;
-                return nullptr;
-            } else {
-                memcpy(dst, src, srcLength * sizeof(ToType));
-            }
-        }
-
-        return dst;
-    }
-};
-
-template<class _SizeType>
 class TCharacterConverter<char, tchar, _SizeType>
 {
   public:
@@ -85,7 +60,7 @@ class TCharacterConverter<char, tchar, _SizeType>
         }
 
         while (*srcPtr) {
-            if (*srcPtr >= 0 && *srcPtr < 0x80) {
+            if (*srcPtr < 0x80) {
                 *dstPtr = (ToType)(*srcPtr);
             } else {
                 *dstPtr = (ToType)bogusSymbol;
@@ -224,6 +199,97 @@ class TCharacterConverter<char8, tchar, _SizeType>
                 dstPtr++;
                 dstIterator++;
             }
+        }
+
+        return dst;
+    }
+};
+
+template<class _SizeType>
+class TCharacterConverter<char32, tchar, _SizeType>
+{
+  public:
+    using FromType = char32;
+    using ToType   = tchar;
+    using SizeType = _SizeType;
+
+    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
+
+    ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
+    {
+        FromType* srcPtr      = (FromType*)src;
+        ToType*   dstPtr      = dst;
+        SizeType  srcIterator = 0;
+        SizeType  dstIterator = 0;
+
+        if (dst == nullptr) {
+            *dstLength = 0;
+            dstPtr     = new ToType[srcLength * sizeof(ToType)];
+        }
+
+        while (*srcPtr && (srcIterator < srcLength)) {
+            if (*srcPtr < 0x10000) {
+                *dstPtr = static_cast<ToType>(*srcPtr);
+                dstPtr++;
+                srcPtr++;
+                srcIterator++;
+                dstIterator++;
+            } else {
+                uint32 codePoint = *srcPtr - 0x10000;
+                uint32 high      = (((codePoint << 12) >> 22) + 0xD800);
+                uint32 low       = (((codePoint << 22) >> 22) + 0xDC00);
+
+                uint16 unicode = ((high << 16) | (low & 0x0000FFFF));
+
+                *dstPtr = static_cast<ToType>(unicode);
+                dstPtr++;
+                dstIterator += 2;
+                srcPtr++;
+                srcIterator++;
+            }
+        }
+
+        if (dst == nullptr) {
+            dstPtr -= dstIterator;
+            SAFE_DELETE_ARRAY(dstPtr);
+            *dstLength = dstIterator + 1;
+        } else {
+            while (dstIterator < *dstLength) {
+                *dstPtr = '\0';
+                dstPtr++;
+                dstIterator++;
+            }
+        }
+
+        return dst;
+    }
+};
+
+template<class _SizeType>
+class TCharacterConverter<wchar_t, tchar, _SizeType>
+{
+  public:
+    using FromType = wchar_t;
+    using ToType   = tchar;
+    using SizeType = _SizeType;
+
+    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
+
+    ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
+    {
+        constexpr size_t fSize = sizeof(FromType);
+        constexpr size_t tSize = sizeof(ToType);
+
+        if constexpr (fSize == tSize) {
+            if (dst == nullptr) {
+                *dstLength = srcLength;
+                return nullptr;
+            }
+
+            memcpy(dst, src, srcLength * sizeof(ToType));
+        } else if constexpr (tSize < fSize) {
+            TCharacterConverter<char32, ToType, SizeType> conv;
+            return conv.Convert(dst, dstLength, (const char32*)src, srcLength);
         }
 
         return dst;
