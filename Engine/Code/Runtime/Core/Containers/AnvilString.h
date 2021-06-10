@@ -207,7 +207,7 @@ class String
     template<class CharType>
     constexpr String& Append(CharType&& chrs)
     {
-        AppendCharacters(GetData(chrs), ::GetSize(chrs));
+        AppendCharacters(GetData(chrs), GetLen(chrs));
         return *this;
     }
 
@@ -257,7 +257,7 @@ GetData(const String& str)
 }
 
 inline uint32
-GetSize(const String& str)
+GetLen(const String& str)
 {
     return str.GetLength();
 }

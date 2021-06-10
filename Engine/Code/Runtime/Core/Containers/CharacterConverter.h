@@ -21,7 +21,7 @@ class TCharacterConverter<Type, Type, _SizeType>
   public:
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const Type* src) const { return static_cast<SizeType>(std::char_traits<Type>::length(src)); }
+    SizeType GetConvertedLength(const Type* src) const { return static_cast<SizeType>(wcslen(reinterpret_cast<const wchar_t*>(src))); }
 
     Type* Convert(Type* dst, SizeType* dstLength, const Type* src, SizeType srcLength) const
     {
@@ -43,7 +43,15 @@ class TCharacterConverter<char, tchar, _SizeType>
     using ToType   = tchar;
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
+    SizeType GetConvertedLength(const FromType* src) const
+    {
+        SizeType count = 0;
+        while (*src) {
+            count++;
+            src++;
+        }
+        return count;
+    }
 
     ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
     {
@@ -94,7 +102,15 @@ class TCharacterConverter<char8, tchar, _SizeType>
     using ToType   = tchar;
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
+    SizeType GetConvertedLength(const FromType* src) const
+    {
+        SizeType count = 0;
+        while (*src) {
+            count++;
+            src++;
+        }
+        return count;
+    }
 
     ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
     {
@@ -211,7 +227,15 @@ class TCharacterConverter<char32, tchar, _SizeType>
     using ToType   = tchar;
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
+    SizeType GetConvertedLength(const FromType* src) const
+    {
+        SizeType count = 0;
+        while (*src) {
+            count++;
+            src++;
+        }
+        return count;
+    }
 
     ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
     {
@@ -271,7 +295,7 @@ class TCharacterConverter<wchar_t, tchar, _SizeType>
     using ToType   = tchar;
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(std::char_traits<FromType>::length(src)); }
+    SizeType GetConvertedLength(const FromType* src) const { return static_cast<SizeType>(wcslen(reinterpret_cast<const wchar_t*>(src))); }
 
     ToType* Convert(ToType* dst, SizeType* dstLength, const FromType* src, SizeType srcLength) const
     {
