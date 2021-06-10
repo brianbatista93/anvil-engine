@@ -21,7 +21,19 @@ class TCharacterConverter<Type, Type, _SizeType>
   public:
     using SizeType = _SizeType;
 
-    SizeType GetConvertedLength(const Type* src) const { return static_cast<SizeType>(wcslen(reinterpret_cast<const wchar_t*>(src))); }
+    SizeType GetConvertedLength(const Type* src) const
+    {
+        if constexpr (std::is_same_v<Type, wchar_t>) {
+            return static_cast<SizeType>(wcslen(reinterpret_cast<const wchar_t*>(src)));
+        } else {
+            SizeType count = 0;
+            while (*src) {
+                count++;
+                src++;
+            }
+            return count;
+        }
+    }
 
     Type* Convert(Type* dst, SizeType* dstLength, const Type* src, SizeType srcLength) const
     {
