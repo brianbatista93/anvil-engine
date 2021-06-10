@@ -31,9 +31,9 @@ class TArray
     constexpr TArray(const TArray& other)
     {
         m_size     = other.m_size;
-        m_capacity = other.m_capacity;
+        m_capacity = m_size;
 
-        m_allocator.Reallocate(other.m_size, 0, sizeof(ItemType));
+        m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
         MemoryUtils::CopyElements(GetData(), other.GetData(), other.GetSize());
     }
 
@@ -45,7 +45,7 @@ class TArray
     constexpr TArray(TArray&& other)
     {
         m_size     = other.m_size;
-        m_capacity = other.m_capacity;
+        m_capacity = m_size;
 
         m_allocator = std::move(other.m_allocator);
 
@@ -104,6 +104,28 @@ class TArray
 
         m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
         MemoryUtils::CopyElements(GetData(), begin, m_size);
+    }
+
+    constexpr TArray(const TArray& other, SizeType extraSpace)
+    {
+        m_size     = other.m_size + extraSpace;
+        m_capacity = m_size;
+
+        m_allocator.Reallocate(m_size, 0, sizeof(ItemType));
+        MemoryUtils::CopyElements(GetData(), other.GetData(), other.GetSize());
+        MemoryUtils::ConstructElements(GetData() + other.GetSize(), extraSpace);
+    }
+
+    constexpr TArray(TArray&& other, SizeType extraSpace)
+    {
+        m_size     = other.m_size + extraSpace;
+        m_capacity = m_size;
+
+        m_allocator = std::move(other.m_allocator);
+        Reserve(m_size);
+
+        other.m_size     = 0;
+        other.m_capacity = 0;
     }
 
     ~TArray() {}

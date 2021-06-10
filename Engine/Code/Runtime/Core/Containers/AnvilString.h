@@ -18,6 +18,24 @@ class String
     ~String()                   = default;
 
     /**
+     * @brief Copy a string with extra space.
+     * @param other String to be copied.
+     * @param extraSpace Extra space.
+    */
+    constexpr explicit String(const String& other, SizeType extraSpace)
+      : m_data(other.m_data, extraSpace + ((other.m_data.GetSize() || !extraSpace) ? 0 : 1))
+    {}
+
+    /**
+     * @brief Move a string with extra space.
+     * @param other String to be moved.
+     * @param extraSpace Extra space.
+    */
+    constexpr explicit String(String&& other, SizeType extraSpace)
+      : m_data(std::move(other.m_data), extraSpace + ((other.m_data.GetSize() || !extraSpace) ? 0 : 1))
+    {}
+
+    /**
      * @brief Construct a string from a character pointer.
     */
     template<class CharType, typename = typename TEnableIf<TIsChar<CharType>::Value>::Type>
@@ -31,6 +49,22 @@ class String
             m_data.AddSlots(dstLength);
             conv.Convert(m_data.GetData(), &dstLength, str, srcLength);
         }
+    }
+
+    constexpr String& operator=(const tchar* other)
+    {
+        if (m_data.GetData() != other) {
+            TCharacterConverter<tchar, tchar, SizeType> conv;
+            SizeType                                    length = (other && *other) ? conv.GetConvertedLength(other) + 1 : 0;
+            m_data.Clear(true);
+            m_data.AddSlots(length);
+
+            if (length) {
+                memcpy(m_data.GetData(), other, length * sizeof(tchar));
+            }
+        }
+
+        return *this;
     }
 
     /**

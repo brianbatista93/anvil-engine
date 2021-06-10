@@ -77,6 +77,9 @@ TEST_CASE("[TArray]")
             CHECK_EQ(u[i], i + 1);
             CHECK_EQ(v[i], u[i]);
         }
+
+        TArray<int32> w(v, 10);
+        CHECK_EQ(w.GetSize(), v.GetSize() + 10);
     }
 
     SUBCASE("Move constructor")
