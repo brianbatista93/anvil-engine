@@ -6,7 +6,10 @@ struct ArgumentPosition
 {
     String::SizeType Start;
     String::SizeType End;
+    bool             HasIndex     = false;
+    bool             HasExtraInfo = false;
     tchar            Arg[8] {0};
+    String::SizeType Index = 0;
 };
 
 bool
@@ -42,9 +45,8 @@ GetArgsPositions(const tchar* format)
 
     String::SizeType index = 0;
     ArgumentPosition pos;
-    tchar*           argPtr          = nullptr;
-    bool             isOpen          = false;
-    bool             isSpecification = false;
+    tchar*           argPtr = nullptr;
+    bool             isOpen = false;
 
     while (*format) {
         tchar c = *format++;
@@ -60,7 +62,12 @@ GetArgsPositions(const tchar* format)
                 argPtr = nullptr;
                 isOpen = false;
             } else if (c == ATEXT(':')) {
-                isSpecification = true;
+                pos.HasExtraInfo = true;
+            } else if (IsDigit(c)) {
+                if (!pos.HasExtraInfo) {
+                    pos.HasIndex = true;
+                    pos.Index    = static_cast<String::SizeType>(c - 48);
+                }
             } else {
                 *(argPtr++) = c;
             }
@@ -81,18 +88,6 @@ GetFormatterArgs(uint32 argc, const FormatterArgument* argv)
 bool
 CheckArguments(TArray<ArgumentPosition>& positions, TArray<FormatterArgument>& args)
 {
-    if (positions.GetSize() != args.GetSize()) {
-        return false;
-    }
-
-    for (uint32 i = 0; i < args.GetSize(); i++) {
-        ArgumentPosition& pos = positions[i];
-        if (*pos.Arg) {
-            // FormatterArgument& arg = args[i];
-            // TODO. Implement a real check.
-        }
-    }
-
     return true;
 }
 
@@ -137,11 +132,22 @@ ProcessFormat(String& format, const TArray<ArgumentPosition>& positions, const T
     String           temp;
     const auto       argsCount = args.GetSize();
 
-    for (auto i = 0; i < args.GetSize(); i++) {
-        auto& p = positions[i];
-        auto& a = args[i];
+    String::SizeType argsIndex = 0;
 
-        String sub = format.SubStr(offset, p.Start);
+    for (auto i = 0; i < positions.GetSize(); i++) {
+        ArgumentPosition  p = positions[i];
+        FormatterArgument a = args[argsIndex];
+        if (p.HasIndex) {
+            AE_ASSERT(p.Index < args.GetSize());
+            a = args[p.Index];
+        } else {
+            argsIndex++;
+        }
+
+        String sub;
+        if (p.Start - offset > 0)
+            sub = format.SubStr(offset, p.Start);
+
         sub += ArgumentToString(a);
         temp += sub;
         offset = p.Start;
@@ -165,7 +171,7 @@ String::FormatStringInternal(const tchar* format, uint32 argc, const FormatterAr
 
     TArray<ArgumentPosition> argsPositions = GetArgsPositions(format);
 
-    AE_ASSERT(argc == argsPositions.GetSize());
+    // AE_ASSERT(argc == argsPositions.GetSize());
 
     if (!argsPositions.IsEmpty()) {
         TArray<FormatterArgument> args = GetFormatterArgs(argc, argv);
