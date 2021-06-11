@@ -68,17 +68,11 @@ TEST_CASE("[String] Append operations")
     CHECK_EQ(result, ATEXT("I love coffee-我喜欢咖啡 😍☕😍"));
 }
 
-//TEST_CASE("[String] Formatter")
-//{
-//    String formatted
-//      = StringUtils::Format(ATEXT("Olá, meu nome é {}, eu sou de {}, vulgo {1:s4} e gosto de {}. Eu tenho {} anos e peso {:3.5f} kg."),
-//                            ATEXT("Brian"),
-//                            ATEXT("Uberlândia"),
-//                            ATEXT("Udia"),
-//                            ATEXT("maçã"),
-//                            29,
-//                            71.3542f);
-//
-//    CHECK_EQ(formatted, ATEXT("Olá, meu nome é Brian, eu sou de Uberlândia, vulgo Udia e gosto de maçã. Eu tenho 29 anos e peso 72.35"));
-//}
+TEST_CASE("[String] Formatter")
+{
+    String formatted
+      = String::Format(ATEXT("So here we are, {} little mice {1}{1} walking {:2.2f} miles in {} days."), 2, ATEXT("🐀"), 36.84f, 3);
+
+    CHECK_EQ(formatted, ATEXT("So here we are, 2 little mice 🐀🐀 walking 36.84 miles in 3 days."));
+}
 TEST_SUITE_END();

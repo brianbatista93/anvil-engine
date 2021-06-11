@@ -2,6 +2,7 @@
 
 #include "Array.h"
 #include "CharacterConverter.h"
+#include "StringFormatArgument.h"
 
 class String;
 
@@ -58,6 +59,15 @@ class String
             conv.Convert(nullptr, &dstLength, str, srcLength);
             m_data.AddSlots(dstLength);
             conv.Convert(m_data.GetData(), &dstLength, str, srcLength);
+        }
+    }
+
+    constexpr String(const ItemType* begin, const ItemType* end)
+      : m_data(begin, end)
+    {
+        if (m_data[GetSize() - 1] != 0) {
+            m_data.AddSlots(1);
+            m_data[GetSize() - 1] = 0;
         }
     }
 
@@ -240,6 +250,37 @@ class String
 
     [[nodiscard]] friend bool operator>=(const String& lhs, const String& rhs) { return lhs.m_data >= rhs.m_data; }
 
+    /**
+     * @brief Removes a count of characters starting from a index.
+     * @param index Starting index.
+     * @param count Number of characters to remove.
+    */
+    constexpr void RemoveAt(SizeType index, SizeType count = 1) { m_data.RemoveAt(index, count); }
+
+    /**
+     * @brief Removes a count of characters starting from a index.
+     * @param index Starting index.
+     * @param count Number of characters to remove.
+    */
+    String SubStr(SizeType startIndex, SizeType endIndex = NPos) const
+    {
+        const uint32 offset = (endIndex == NPos) ? GetLength() : endIndex;
+
+        return String(begin() + startIndex, begin() + offset);
+    }
+
+    template<class... Args>
+    [[nodiscard]] static String Format(const tchar* format, Args&&... args)
+    {
+        const SizeType          size      = sizeof...(args);
+        const FormatterArgument res[size] = {args...};
+
+        return FormatStringInternal(format, size, res);
+    }
+
+  private:
+    static String FormatStringInternal(const tchar* format, uint32 argc, const FormatterArgument* argv);
+
   private:
     ArrayType m_data;
 };
@@ -260,4 +301,32 @@ inline uint32
 GetLen(const String& str)
 {
     return str.GetLength();
+}
+
+template<class ValueType>
+[[nodiscard]] typename TEnableIf<TIsFundamental<ValueType>::Value, String>::Type
+ToStringFundamental(const ValueType& value)
+{
+    char buffer[512];
+
+    if constexpr (std::is_integral_v<ValueType>) {
+        sprintf(buffer, "%d", value);
+    } else if constexpr (std::is_floating_point_v<ValueType>) {
+        sprintf(buffer, "%f", value);
+    }
+
+    return buffer;
+}
+
+[[nodiscard]] inline String
+ToString(bool value)
+{
+    return value ? ATEXT("true") : ATEXT("false");
+}
+
+template<class ValueType>
+[[nodiscard]] inline String
+ToString(const ValueType& value)
+{
+    return ToStringFundamental(value);
 }
